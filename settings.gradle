@@ -1,0 +1,4 @@
+rootProject.name = 'tigase-server'
+include 'tigase-utils'
+include 'tigase-xmltools'
+
