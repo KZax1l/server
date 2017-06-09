@@ -42,201 +42,204 @@ import java.util.stream.Collectors;
 @Bean(name = BeanConfigurator.DEFAULT_CONFIGURATOR_NAME, active = true)
 public class DSLBeanConfigurator extends AbstractBeanConfigurator {
 
-	private static final Logger log = Logger.getLogger(DSLBeanConfigurator.class.getCanonicalName());
-	private ConfigHolder configHolder;
+    private static final Logger log = Logger.getLogger(DSLBeanConfigurator.class.getCanonicalName());
+    private ConfigHolder configHolder;
 
-	private Map<String, Object> props;
+    private Map<String, Object> props;
 
-	@Override
-	public Map<String, Object> getConfiguration(BeanConfig beanConfig) {
-		if (props == null)
-			return new HashMap<>();
+    @Override
+    public Map<String, Object> getConfiguration(BeanConfig beanConfig) {
+        if (props == null)
+            return new HashMap<>();
 
-		Map<String, String> aliassesToFields = getFieldAliasses(beanConfig);
+        Map<String, String> aliassesToFields = getFieldAliasses(beanConfig);
 
-		return getBeanConfigurationProperties(beanConfig, aliassesToFields);
-	}
+        return getBeanConfigurationProperties(beanConfig, aliassesToFields);
+    }
 
-	protected boolean hasDirectConfiguration(BeanConfig beanConfig) {
-		ArrayDeque<String> kernels = getBeanConfigPath(beanConfig);
-		Map<String, Object> result = props;
+    protected boolean hasDirectConfiguration(BeanConfig beanConfig) {
+        ArrayDeque<String> kernels = getBeanConfigPath(beanConfig);
+        Map<String, Object> result = props;
 
-		String name;
-		while (result != null && (name = kernels.poll()) != null) {
-			result = (Map<String, Object>) result.get(name);
-		}
+        String name;
+        while (result != null && (name = kernels.poll()) != null) {
+            result = (Map<String, Object>) result.get(name);
+        }
 
-		return result != null;
-	}
+        return result != null;
+    }
 
-	protected Map<String, Object> getBeanConfigurationProperties(BeanConfig beanConfig, Map<String, String> aliasesToFields) {
-		HashMap<String, Object> result = new HashMap<>();
-		ArrayDeque<String> path = getBeanConfigPath(beanConfig);
-		Queue<Map<String, Object>> configPath = new ArrayDeque<>();
-		Map<String, Object> props = this.props;
-		configPath.add(props);
+    protected Map<String, Object> getBeanConfigurationProperties(BeanConfig beanConfig, Map<String, String> aliasesToFields) {
+        HashMap<String, Object> result = new HashMap<>();
+        ArrayDeque<String> path = getBeanConfigPath(beanConfig);
+        Queue<Map<String, Object>> configPath = new ArrayDeque<>();
+        Map<String, Object> props = this.props;
+        configPath.add(props);
 
-		String name;
-		while((name = path.poll()) != null) {
-			props = (Map<String, Object>) props.get(name);
-			if (props == null) {
-				configPath.offer(Collections.emptyMap());
-				break;
-			}
+        String name;
+        while ((name = path.poll()) != null) {
+            props = (Map<String, Object>) props.get(name);
+            if (props == null) {
+                configPath.offer(Collections.emptyMap());
+                break;
+            }
 
-			configPath.offer(props);
-		}
+            configPath.offer(props);
+        }
 
-		while ((props = configPath.poll()) != null) {
-			for (Map.Entry<String, Object> e : props.entrySet()) {
-				if (configPath.isEmpty()) {
-					String fieldName = aliasesToFields.get(e.getKey());
-					if (fieldName != null) {
-						result.put(fieldName, e.getValue());
-					} else {
-						result.put(e.getKey(), e.getValue());
-					}
+        while ((props = configPath.poll()) != null) {
+            for (Map.Entry<String, Object> e : props.entrySet()) {
+                if (configPath.isEmpty()) {
+                    String fieldName = aliasesToFields.get(e.getKey());
+                    if (fieldName != null) {
+                        result.put(fieldName, e.getValue());
+                    } else {
+                        result.put(e.getKey(), e.getValue());
+                    }
 
-				} else {
-					String fieldName = aliasesToFields.get(e.getKey());
-					if (fieldName != null) {
-						result.put(fieldName, e.getValue());
-					}
-				}
-			}
-		}
+                } else {
+                    String fieldName = aliasesToFields.get(e.getKey());
+                    if (fieldName != null) {
+                        result.put(fieldName, e.getValue());
+                    }
+                }
+            }
+        }
 
-		result.put("name", beanConfig.getBeanName());
+        result.put("name", beanConfig.getBeanName());
 
-		return result;
-	}
+        return result;
+    }
 
-	protected Map<String, String> getFieldAliasses(BeanConfig beanConfig) {
-		Map<String, String> configAliasses = new HashMap<>();
-		Class<?> cls = beanConfig.getClazz();
+    protected Map<String, String> getFieldAliasses(BeanConfig beanConfig) {
+        Map<String, String> configAliasses = new HashMap<>();
+        Class<?> cls = beanConfig.getClazz();
 
-		Field[] fields = DependencyManager.getAllFields(cls);
-		for (Field field : fields) {
-			ConfigField cf = field.getAnnotation(ConfigField.class);
-			if (cf != null) {
-				if (!cf.alias().isEmpty()) {
-					configAliasses.put(cf.alias(), field.getName());
-				}
-			}
-		}
+        Field[] fields = DependencyManager.getAllFields(cls);
+        for (Field field : fields) {
+            ConfigField cf = field.getAnnotation(ConfigField.class);
+            if (cf != null) {
+                if (!cf.alias().isEmpty()) {
+                    configAliasses.put(cf.alias(), field.getName());
+                }
+            }
+        }
 
-		do {
-			ConfigAliases ca = cls.getAnnotation(ConfigAliases.class);
-			if (ca != null) {
-				for (ConfigAlias a : ca.value()) {
-					configAliasses.put(a.alias(), a.field());
-				}
-			} else {
-				break;
-			}
-		} while ((cls = cls.getSuperclass()) != null);
-		return configAliasses;
-	}
+        do {
+            ConfigAliases ca = cls.getAnnotation(ConfigAliases.class);
+            if (ca != null) {
+                for (ConfigAlias a : ca.value()) {
+                    configAliasses.put(a.alias(), a.field());
+                }
+            } else {
+                break;
+            }
+        } while ((cls = cls.getSuperclass()) != null);
+        return configAliasses;
+    }
 
-	@Override
-	protected Map<String, BeanDefinition> getBeanDefinitions(Map<String, Object> values) {
-		Map<String, BeanDefinition> beanDefinitions = super.getBeanDefinitions(values);
+    @Override
+    protected Map<String, BeanDefinition> getBeanDefinitions(Map<String, Object> values) {
+        Map<String, BeanDefinition> beanDefinitions = super.getBeanDefinitions(values);
 
-		for (Map.Entry<String, Object> e : values.entrySet()) {
-			if (e.getValue() instanceof BeanDefinition) {
-				beanDefinitions.put(e.getKey(), (BeanDefinition) e.getValue());
-			}
-		}
+        for (Map.Entry<String, Object> e : values.entrySet()) {
+            if (e.getValue() instanceof BeanDefinition) {
+                beanDefinitions.put(e.getKey(), (BeanDefinition) e.getValue());
+            }
+        }
 
-		return beanDefinitions;
-	}
+        return beanDefinitions;
+    }
 
-	public Map<String, Object> getProperties() {
-		return props;
-	}
+    public Map<String, Object> getProperties() {
+        return props;
+    }
 
-	public void setProperties(Map<String, Object> props) {
-		this.props = props;
-	}
+    public void setProperties(Map<String, Object> props) {
+        this.props = props;
+    }
 
-	public ConfigHolder getConfigHolder() {
-		return configHolder;
-	}
+    public ConfigHolder getConfigHolder() {
+        return configHolder;
+    }
 
-	public void setConfigHolder(ConfigHolder config) {
-		this.configHolder = config;
-		setProperties(config.getProperties());
-	}
+    public void setConfigHolder(ConfigHolder config) {
+        this.configHolder = config;
+        setProperties(config.getProperties());
+    }
 
-	public void dumpConfiguration(File f) throws IOException {
-		log.log(Level.WARNING, "Dumping full server configuration to: {0}", f);
-		Map<String, Object> dump = new LinkedHashMap<>(props);
-		dumpConfiguration(dump, kernel);
+    public void dumpConfiguration(File f) throws IOException {
+        log.log(Level.WARNING, "Dumping full server configuration to: {0}", f);
+        Map<String, Object> dump = new LinkedHashMap<>(props);
+        dumpConfiguration(dump, kernel);
 
-		new ConfigWriter().resolveVariables().write(f, dump);
-	}
+        new ConfigWriter().resolveVariables().write(f, dump);
+    }
 
-	private void dumpConfiguration(Map<String, Object> dump, Kernel kernel) {
-		List<BeanConfig> beansToDump = kernel.getDependencyManager().getBeanConfigs().stream()
-				.filter(bc -> !Kernel.class.isAssignableFrom(bc.getClazz()) && !(bc instanceof Kernel.DelegatedBeanConfig))
-				.collect(Collectors.toList());
+    private void dumpConfiguration(Map<String, Object> dump, Kernel kernel) {
+        List<BeanConfig> beansToDump = kernel.getDependencyManager().getBeanConfigs().stream()
+                .filter(bc -> !Kernel.class.isAssignableFrom(bc.getClazz()) && !(bc instanceof Kernel.DelegatedBeanConfig))
+                .collect(Collectors.toList());
 
-		for(BeanConfig bc : beansToDump) {
-			BeanDefinition forBean = getBeanDefinitionFromDump(dump, bc.getBeanName());
+        for (BeanConfig bc : beansToDump) {
+            BeanDefinition forBean = getBeanDefinitionFromDump(dump, bc.getBeanName());
 
-			if (forBean.getClazzName() == null) {
-				forBean.setClazzName(bc.getClazz().getCanonicalName());
-			}
-			forBean.setActive(bc.getState() != BeanConfig.State.inactive);
-			forBean.setExportable(bc.isExportable());
+            if (forBean.getClazzName() == null) {
+                forBean.setClazzName(bc.getClazz().getCanonicalName());
+            }
+            forBean.setActive(bc.getState() != BeanConfig.State.inactive);
+            forBean.setExportable(bc.isExportable());
 
-			try {
-				Map<Field, Object> defaults = grabCurrentConfig(bc);
-				Map<String, Object> cfg = bc.getState() != BeanConfig.State.initialized ? getConfiguration(bc) : null;
-				if (defaults != null) {
-					defaults.forEach((field,v) -> {
-						ConfigField cf = field.getAnnotation(ConfigField.class);
+            try {
+                Map<Field, Object> defaults = grabCurrentConfig(bc);
+                Map<String, Object> cfg = bc.getState() != BeanConfig.State.initialized ? getConfiguration(bc) : null;
+                if (defaults != null) {
+                    defaults.forEach((field, v) -> {
+                        ConfigField cf = field.getAnnotation(ConfigField.class);
 //						if (forBean.containsKey(field.getName()) || (cf != null && !cf.alias().isEmpty() && forBean.containsKey(cf.alias()))) {
 //							return;
 //						}
-						Object v1 = cfg.get(field.getName());
-						if (v1 == null && cf != null && !cf.alias().isEmpty()) {
-							v1 = cfg.get(cf.alias());
-						}
-						String prop = (cf == null || cf.alias().isEmpty()) ? field.getName() : cf.alias();
-						forBean.put(prop, v1 == null ? v : v1);
-					});
-				}
-			} catch (Exception ex) {
-				log.log(Level.FINEST, "failed to retrieve default values for bean " + bc.getBeanName() + ", class = " + bc.getClazz(), ex);
-			}
-		}
+                        Object v1 = null;
+                        if (cfg != null) {
+                            v1 = cfg.get(field.getName());
+                            if (v1 == null && cf != null && !cf.alias().isEmpty()) {
+                                v1 = cfg.get(cf.alias());
+                            }
+                        }
+                        String prop = (cf == null || cf.alias().isEmpty()) ? field.getName() : cf.alias();
+                        forBean.put(prop, v1 == null ? v : v1);
+                    });
+                }
+            } catch (Exception ex) {
+                log.log(Level.FINEST, "failed to retrieve default values for bean " + bc.getBeanName() + ", class = " + bc.getClazz(), ex);
+            }
+        }
 
-		List<BeanConfig> kernelBeans = kernel.getDependencyManager().getBeanConfigs().stream()
-				.filter(bc -> Kernel.class.isAssignableFrom(bc.getClazz()))
-				.filter(bc -> bc.getState() == BeanConfig.State.initialized)
-				.collect(Collectors.toList());
-		for (BeanConfig bc : kernelBeans) {
-			Kernel subkernel = kernel.getInstance(bc.getBeanName());
-			if (subkernel == kernel)
-				continue;
-			BeanDefinition forKernel = getBeanDefinitionFromDump(dump, subkernel.getName());
-			dumpConfiguration(forKernel, subkernel);
-		}
-	}
+        List<BeanConfig> kernelBeans = kernel.getDependencyManager().getBeanConfigs().stream()
+                .filter(bc -> Kernel.class.isAssignableFrom(bc.getClazz()))
+                .filter(bc -> bc.getState() == BeanConfig.State.initialized)
+                .collect(Collectors.toList());
+        for (BeanConfig bc : kernelBeans) {
+            Kernel subkernel = kernel.getInstance(bc.getBeanName());
+            if (subkernel == kernel)
+                continue;
+            BeanDefinition forKernel = getBeanDefinitionFromDump(dump, subkernel.getName());
+            dumpConfiguration(forKernel, subkernel);
+        }
+    }
 
-	private BeanDefinition getBeanDefinitionFromDump(Map<String, Object> dump, String name) {
-		Map<String, Object> tmp = (Map<String, Object>) dump.get(name);
+    private BeanDefinition getBeanDefinitionFromDump(Map<String, Object> dump, String name) {
+        Map<String, Object> tmp = (Map<String, Object>) dump.get(name);
 
-		if (tmp == null || (!(tmp instanceof BeanDefinition))) {
-			BeanDefinition def = new BeanDefinition();
-			def.setBeanName(name);
-			if (tmp != null)
-				def.putAll(tmp);
-			dump.put(name, def);
-			tmp = def;
-		}
+        if (tmp == null || (!(tmp instanceof BeanDefinition))) {
+            BeanDefinition def = new BeanDefinition();
+            def.setBeanName(name);
+            if (tmp != null)
+                def.putAll(tmp);
+            dump.put(name, def);
+            tmp = def;
+        }
 
-		return (BeanDefinition) tmp;
-	}
+        return (BeanDefinition) tmp;
+    }
 }
