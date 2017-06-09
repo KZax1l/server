@@ -37,34 +37,28 @@ import javax.script.Bindings;
 @Bean(name = "ext-disco", parent = Kernel.class, active = false)
 public class ExternalServiceDiscoveryComponent extends AbstractKernelBasedComponent {
 
-	@Inject
-	private ComponentRepository<ExtServiceDiscoItem> repo;
+    @Inject
+    private ComponentRepository<ExtServiceDiscoItem> repo;
 
-	@Override
-	public String getDiscoDescription() {
-		return "External Service Discovery component";
-	}
+    @Override
+    public String getDiscoDescription() {
+        return "External Service Discovery component";
+    }
 
-	@Override
-	public String getComponentVersion() {
-		String version = this.getClass().getPackage().getImplementationVersion();
-		return version == null ? "0.0.0" : version;
-	}
+    @Override
+    public void initBindings(Bindings binds) {
+        super.initBindings(binds);
+        binds.put(ComponentRepository.COMP_REPO_BIND, repo);
+    }
 
-	@Override
-	public void initBindings(Bindings binds) {
-		super.initBindings(binds);
-		binds.put(ComponentRepository.COMP_REPO_BIND, repo);
-	}
+    @Override
+    public boolean isDiscoNonAdmin() {
+        return false;
+    }
 
-	@Override
-	public boolean isDiscoNonAdmin() {
-		return false;
-	}
-
-	@Override
-	protected void registerModules(Kernel kernel) {
-		kernel.registerBean(AdHocCommandModule.class).exec();
-		kernel.registerBean(DiscoveryModule.class).exec();
-	}
+    @Override
+    protected void registerModules(Kernel kernel) {
+        kernel.registerBean(AdHocCommandModule.class).exec();
+        kernel.registerBean(DiscoveryModule.class).exec();
+    }
 }

@@ -46,128 +46,132 @@ import java.util.logging.Logger;
 
 public abstract class AbstractKernelBasedComponent extends AbstractMessageReceiver implements XMPPService, DisableDisco, RegistrarBean {
 
-	protected Kernel kernel = null;
-	/**
-	 * Logger
-	 */
-	protected final Logger log = Logger.getLogger(this.getClass().getName());
-	protected final EventBus eventBus = EventBusFactory.getInstance();
+    protected Kernel kernel = null;
+    /**
+     * Logger
+     */
+    protected final Logger log = Logger.getLogger(this.getClass().getName());
+    protected final EventBus eventBus = EventBusFactory.getInstance();
 
-	@Inject(nullAllowed = true)
-	private Set<ScheduledTask> scheduledTasks;
+    @Inject(nullAllowed = true)
+    private Set<ScheduledTask> scheduledTasks;
 
-	@Inject
-	private StanzaProcessor stanzaProcessor;
+    @Inject
+    private StanzaProcessor stanzaProcessor;
 
-	@Override
-	protected ScriptEngineManager createScriptEngineManager() {
-		ScriptEngineManager result = super.createScriptEngineManager();
-		result.setBindings(new BindingsKernel(kernel));
-		return result;
-	}
+    @Override
+    protected ScriptEngineManager createScriptEngineManager() {
+        ScriptEngineManager result = super.createScriptEngineManager();
+        result.setBindings(new BindingsKernel(kernel));
+        return result;
+    }
 
-	public abstract String getComponentVersion();
+    public String getComponentVersion() {
+        String version = this.getClass().getPackage().getImplementationVersion();
+        return version == null ? "0.0.0" : version;
+    }
 
-	public Kernel getKernel() {
-		return this.kernel;
-	}
 
-	@Override
-	public void initBindings(Bindings binds) {
-		super.initBindings(binds);
-		binds.put("kernel", kernel);
-	}
+    public Kernel getKernel() {
+        return this.kernel;
+    }
 
-	@Override
-	public void start() {
-		super.start();
+    @Override
+    public void initBindings(Bindings binds) {
+        super.initBindings(binds);
+        binds.put("kernel", kernel);
+    }
 
-		if (scheduledTasks != null) {
-			for (ScheduledTask task : scheduledTasks) {
-				task.initialize();
-			}
-		}
-	}
+    @Override
+    public void start() {
+        super.start();
 
-	/**
-	 * Is this component discoverable by disco#items for domain by non admin
-	 * users.
-	 *
-	 * @return <code>true</code> - if yes
-	 */
-	public abstract boolean isDiscoNonAdmin();
+        if (scheduledTasks != null) {
+            for (ScheduledTask task : scheduledTasks) {
+                task.initialize();
+            }
+        }
+    }
 
-	@Override
-	public void processPacket(Packet packet) {
-		stanzaProcessor.processPacket(packet);
-	}
+    /**
+     * Is this component discoverable by disco#items for domain by non admin
+     * users.
+     *
+     * @return <code>true</code> - if yes
+     */
+    public abstract boolean isDiscoNonAdmin();
 
-	protected abstract void registerModules(Kernel kernel);
+    @Override
+    public void processPacket(Packet packet) {
+        stanzaProcessor.processPacket(packet);
+    }
 
-	@Override
-	public void register(Kernel kernel) {
-		this.kernel = kernel;
+    protected abstract void registerModules(Kernel kernel);
 
-		//kernel.registerBean("component").asInstance(this).exec();
-		//kernel.ln("service", kernel, "component");
-		kernel.registerBean("adHocCommandManager").asClass(AdHocCommandManager.class).exec();
-		kernel.registerBean("scriptCommandProcessor").asClass(ComponenScriptCommandProcessor.class).exec();
-		kernel.registerBean("writer").asClass(DefaultPacketWriter.class).exec();
-		kernel.registerBean("responseManager").asClass(ResponseManager.class).exec();
-		kernel.registerBean("stanzaProcessor").asClass(StanzaProcessor.class).exec();
-		kernel.registerBean(ConfiguratorCommand.class).exec();
+    @Override
+    public void register(Kernel kernel) {
+        this.kernel = kernel;
 
-		registerModules(kernel);
-	}
+        //kernel.registerBean("component").asInstance(this).exec();
+        //kernel.ln("service", kernel, "component");
+        kernel.registerBean("adHocCommandManager").asClass(AdHocCommandManager.class).exec();
+        kernel.registerBean("scriptCommandProcessor").asClass(ComponenScriptCommandProcessor.class).exec();
+        kernel.registerBean("writer").asClass(DefaultPacketWriter.class).exec();
+        kernel.registerBean("responseManager").asClass(ResponseManager.class).exec();
+        kernel.registerBean("stanzaProcessor").asClass(StanzaProcessor.class).exec();
+        kernel.registerBean(ConfiguratorCommand.class).exec();
 
-	@Override
-	public void unregister(Kernel kernel) {
-		this.kernel = null;
-	}
+        registerModules(kernel);
+    }
 
-	@Override
-	public void updateServiceEntity() {
-		super.updateServiceEntity();
-		this.updateServiceDiscoveryItem(getName(), null, getDiscoDescription(), !isDiscoNonAdmin());
-	}
+    @Override
+    public void unregister(Kernel kernel) {
+        this.kernel = null;
+    }
 
-	@Bean(name = "writer", active = true)
-	public static final class DefaultPacketWriter implements PacketWriter {
+    @Override
+    public void updateServiceEntity() {
+        super.updateServiceEntity();
+        this.updateServiceDiscoveryItem(getName(), null, getDiscoDescription(), !isDiscoNonAdmin());
+    }
 
-		protected final Logger log = Logger.getLogger(this.getClass().getName());
-		@Inject(nullAllowed = false)
-		private AbstractKernelBasedComponent component;
-		@Inject(nullAllowed = false)
-		private ResponseManager responseManager;
+    @Bean(name = "writer", active = true)
+    public static final class DefaultPacketWriter implements PacketWriter {
 
-		@Override
-		public void write(Collection<Packet> elements) {
-			if (elements != null) {
-				for (Packet element : elements) {
-					if (element != null) {
-						write(element);
-					}
-				}
-			}
-		}
+        protected final Logger log = Logger.getLogger(this.getClass().getName());
+        @Inject(nullAllowed = false)
+        private AbstractKernelBasedComponent component;
+        @Inject(nullAllowed = false)
+        private ResponseManager responseManager;
 
-		@Override
-		public void write(Packet packet) {
-			if (log.isLoggable(Level.FINER)) {
-				log.finer("Sent: " + packet.getElement());
-			}
-			component.addOutPacket(packet);
-		}
+        @Override
+        public void write(Collection<Packet> elements) {
+            if (elements != null) {
+                for (Packet element : elements) {
+                    if (element != null) {
+                        write(element);
+                    }
+                }
+            }
+        }
 
-		@Override
-		public void write(Packet packet, AsyncCallback callback) {
-			if (log.isLoggable(Level.FINER)) {
-				log.finer("Sent: " + packet.getElement());
-			}
-			responseManager.registerResponseHandler(packet, ResponseManager.DEFAULT_TIMEOUT, callback);
-			component.addOutPacket(packet);
-		}
+        @Override
+        public void write(Packet packet) {
+            if (log.isLoggable(Level.FINER)) {
+                log.finer("Sent: " + packet.getElement());
+            }
+            component.addOutPacket(packet);
+        }
 
-	}
+        @Override
+        public void write(Packet packet, AsyncCallback callback) {
+            if (log.isLoggable(Level.FINER)) {
+                log.finer("Sent: " + packet.getElement());
+            }
+            responseManager.registerResponseHandler(packet, ResponseManager.DEFAULT_TIMEOUT, callback);
+            component.addOutPacket(packet);
+        }
+
+    }
 
 }

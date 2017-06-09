@@ -43,110 +43,101 @@ import java.util.logging.Level;
 
 @Bean(name = "eventbus", parent = Kernel.class, active = true)
 @ConfigType({ConfigTypeEnum.DefaultMode, ConfigTypeEnum.SessionManagerMode, ConfigTypeEnum.ConnectionManagersMode,
-			 ConfigTypeEnum.ComponentMode})
+        ConfigTypeEnum.ComponentMode})
 public class EventBusComponent extends AbstractKernelBasedComponent implements ClusteredComponentIfc {
 
-	public EventBusComponent() {
-	}
+    public EventBusComponent() {
+    }
 
-	// private final Map<String, ListenerScript> listenersScripts = new
-	// ConcurrentHashMap<String, ListenerScript>();
+    @Override
+    public String getDiscoCategory() {
+        return "pubsub";
+    }
 
-	@Override
-	public String getComponentVersion() {
-		String version = this.getClass().getPackage().getImplementationVersion();
-		return version == null ? "0.0.0" : version;
-	}
+    @Override
+    public String getDiscoCategoryType() {
+        return "service";
+    }
 
-	@Override
-	public String getDiscoCategory() {
-		return "pubsub";
-	}
+    @Override
+    public String getDiscoDescription() {
+        return "Distributed EventBus";
+    }
 
-	@Override
-	public String getDiscoCategoryType() {
-		return "service";
-	}
+    @Override
+    public void getStatistics(StatisticsList list) {
+        super.getStatistics(list);
+    }
 
-	@Override
-	public String getDiscoDescription() {
-		return "Distributed EventBus";
-	}
+    @Override
+    public boolean isDiscoNonAdmin() {
+        return false;
+    }
 
-	@Override
-	public void getStatistics(StatisticsList list) {
-		super.getStatistics(list);
-	}
+    @Override
+    public boolean isSubdomain() {
+        return false;
+    }
 
-	@Override
-	public boolean isDiscoNonAdmin() {
-		return false;
-	}
+    @Override
+    protected void onNodeConnected(JID jid) {
+        super.onNodeConnected(jid);
 
-	@Override
-	public boolean isSubdomain() {
-		return false;
-	}
+        if (log.isLoggable(Level.FINE))
+            log.fine("Cluster node " + jid + " added to Affiliation Store");
+        kernel.getInstance(AffiliationStore.class).putAffiliation(jid, Affiliation.owner);
 
-	@Override
-	protected void onNodeConnected(JID jid) {
-		super.onNodeConnected(jid);
+        Module module = kernel.getInstance(SubscribeModule.ID);
+        if (module != null && module instanceof SubscribeModule) {
+            ((SubscribeModule) module).clusterNodeConnected(jid);
+        }
 
-		if (log.isLoggable(Level.FINE))
-			log.fine("Cluster node " + jid + " added to Affiliation Store");
-		kernel.getInstance(AffiliationStore.class).putAffiliation(jid, Affiliation.owner);
+    }
 
-		Module module = kernel.getInstance(SubscribeModule.ID);
-		if (module != null && module instanceof SubscribeModule) {
-			((SubscribeModule) module).clusterNodeConnected(jid);
-		}
+    @Override
+    public void onNodeDisconnected(JID jid) {
+        super.onNodeDisconnected(jid);
 
-	}
+        Module module = kernel.getInstance(SubscribeModule.ID);
+        if (module != null && module instanceof SubscribeModule) {
+            ((SubscribeModule) module).clusterNodeDisconnected(jid);
+        }
+        kernel.getInstance(AffiliationStore.class).removeAffiliation(jid);
+    }
 
-	@Override
-	public void onNodeDisconnected(JID jid) {
-		super.onNodeDisconnected(jid);
+    @Override
+    public void processPacket(tigase.server.Packet packet) {
+        super.processPacket(packet);
+    }
 
-		Module module = kernel.getInstance(SubscribeModule.ID);
-		if (module != null && module instanceof SubscribeModule) {
-			((SubscribeModule) module).clusterNodeDisconnected(jid);
-		}
-		kernel.getInstance(AffiliationStore.class).removeAffiliation(jid);
-	}
+    @Override
+    protected void registerModules(Kernel kernel) {
+        kernel.registerBean("scriptEngineManager").asInstance(new ScriptEngineManager()).exec();
+        kernel.registerBean("eventBusRegistrar").asInstance(EventBusFactory.getRegistrar()).exec();
+        kernel.registerBean("localEventBus").asInstance(EventBusFactory.getInstance()).exec();
 
-	@Override
-	public void processPacket(tigase.server.Packet packet) {
-		super.processPacket(packet);
-	}
+        kernel.registerBean(XmppPingModule.class).exec();
+        kernel.registerBean(JabberVersionModule.class).exec();
+        kernel.registerBean(AdHocCommandModule.class).exec();
+        kernel.registerBean(EventbusDiscoveryModule.class).exec();
 
-	@Override
-	protected void registerModules(Kernel kernel) {
-		kernel.registerBean("scriptEngineManager").asInstance(new ScriptEngineManager()).exec();
-		kernel.registerBean("eventBusRegistrar").asInstance(EventBusFactory.getRegistrar()).exec();
-		kernel.registerBean("localEventBus").asInstance(EventBusFactory.getInstance()).exec();
+        // modules
+        kernel.registerBean(SubscribeModule.class).exec();
+        kernel.registerBean(UnsubscribeModule.class).exec();
+        kernel.registerBean(EventPublisherModule.class).exec();
+        kernel.registerBean(EventReceiverModule.class).exec();
 
-		kernel.registerBean(XmppPingModule.class).exec();
-		kernel.registerBean(JabberVersionModule.class).exec();
-		kernel.registerBean(AdHocCommandModule.class).exec();
-		kernel.registerBean(EventbusDiscoveryModule.class).exec();
-
-		// modules
-		kernel.registerBean(SubscribeModule.class).exec();
-		kernel.registerBean(UnsubscribeModule.class).exec();
-		kernel.registerBean(EventPublisherModule.class).exec();
-		kernel.registerBean(EventReceiverModule.class).exec();
-
-		// beans
-		// kernel.registerBean(ListenerScriptRegistrar.class).exec();
+        // beans
+        // kernel.registerBean(ListenerScriptRegistrar.class).exec();
 //		kernel.registerBean(AffiliationStore.class).exec();
 //		kernel.registerBean("subscriptionStore").asClass(SubscriptionStore.class).exec();
-		// ad-hoc commands
-		// kernel.registerBean(AddListenerScriptCommand.class).exec();
-		// kernel.registerBean(RemoveListenerScriptCommand.class).exec();
-	}
+        // ad-hoc commands
+        // kernel.registerBean(AddListenerScriptCommand.class).exec();
+        // kernel.registerBean(RemoveListenerScriptCommand.class).exec();
+    }
 
-	@Override
-	public void setClusterController(ClusterControllerIfc cl_controller) {
-	}
+    @Override
+    public void setClusterController(ClusterControllerIfc cl_controller) {
+    }
 
 }
