@@ -36,190 +36,197 @@ import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 /**
- *
  * @author andrzej
  */
 public abstract class SchemaLoader<P extends SchemaLoader.Parameters> {
-	
-	public static enum Result {
-		ok,
-		error,
-		warning,
-		skipped
-	}
 
-	public interface Parameters {
-		
-		void parseUri(String uri);
-		
-		void setProperties(Properties props);
+    public static enum Result {
+        ok,
+        error,
+        warning,
+        skipped
+    }
 
-		void setAdmins(List<BareJID> admins, String password);
+    public interface Parameters {
 
-		void setDbRootCredentials(String username, String password);
+        void parseUri(String uri);
 
-	}
+        void setProperties(Properties props);
 
-	public static SchemaLoader newInstance(String type) {
-		if (type == null) {
-			throw new RuntimeException("Missing dbType property");
-		}
-		SchemaLoader schemaLoader = getSchemaLoaderInstances()
-				.filter(instance -> instance.isSupported(type))
-				.findAny()
-				.get();
-		return schemaLoader;
-	}
+        List<BareJID> getAdmins();
 
-	public static SchemaLoader newInstanceForURI(String uri) {
-		int idx = uri.indexOf(":");
-		if (idx < 0) {
-			throw new RuntimeException("Unsupported URI");
-		}
-		String type = uri.substring(0, idx);
-		return newInstance(type);
-	}
+        String getAdminPassword();
 
-	private static Stream<Class<?>> getSchemaLoaderClasses() {
-		return ClassUtilBean.getInstance()
-				.getAllClasses()
-				.stream()
-				.filter(clazz -> SchemaLoader.class.isAssignableFrom(clazz))
-				.filter(clazz -> !Modifier.isAbstract(clazz.getModifiers()));
-	}
+        void setAdmins(List<BareJID> admins, String password);
 
-	private static Stream<SchemaLoader> getSchemaLoaderInstances() {
-		return getSchemaLoaderClasses().map(clazz -> {
-			SchemaLoader loader = null;
-			try {
-				loader = (SchemaLoader) clazz.newInstance();
-			} catch (IllegalAccessException | InstantiationException e) {
-				e.printStackTrace();
-			}
-			return loader;
-		}).filter(instance -> instance != null);
-	}
+        void setDbRootCredentials(String username, String password);
 
-	public static List<CommandlineParameter> getMainCommandlineParameters(boolean forceNotRequired) {
-		String[] supportedTypes = (String[]) getSchemaLoaderInstances().flatMap(
-				loader -> loader.getSupportedTypes().stream())
-				.map(x -> (String) x)
-				.sorted()
-				.toArray(x -> new String[x]);
-		return Arrays.asList(
-				new CommandlineParameter.Builder("T", DBSchemaLoader.PARAMETERS_ENUM.DATABASE_TYPE.getName()).description(
-						"Database server type")
-						.options(supportedTypes)
-						//.defaultValue(DBSchemaLoader.PARAMETERS_ENUM.DATABASE_TYPE.getDefaultValue())
-						.valueDependentParametersProvider(SchemaLoader::getDbTypeDependentParameters)
-						.required(!forceNotRequired)
-						.build()
-		);
-	}
+    }
 
-	private static List<CommandlineParameter> getDbTypeDependentParameters(String type) {
-		SchemaLoader loader = newInstance(type);
-		return loader.getCommandlineParameters();
-	}
+    public static SchemaLoader newInstance(String type) {
+        if (type == null) {
+            throw new RuntimeException("Missing dbType property");
+        }
+        SchemaLoader schemaLoader = getSchemaLoaderInstances()
+                .filter(instance -> instance.isSupported(type))
+                .findAny()
+                .get();
+        return schemaLoader;
+    }
 
-	/**
-	 * Main method allowing pass arguments to the class and setting all logging to
-	 * be printed to console.
-	 *
-	 * @param args key-value (in the form of {@code "-<variable> value"})
-	 *             parameters.
-	 */
-	public static void main( String[] args ) {
-		ParameterParser parser = new ParameterParser(true);
+    public static SchemaLoader newInstanceForURI(String uri) {
+        int idx = uri.indexOf(":");
+        if (idx < 0) {
+            throw new RuntimeException("Unsupported URI");
+        }
+        String type = uri.substring(0, idx);
+        return newInstance(type);
+    }
 
-		parser.addOptions(getMainCommandlineParameters(false));
+    private static Stream<Class<?>> getSchemaLoaderClasses() {
+        return ClassUtilBean.getInstance()
+                .getAllClasses()
+                .stream()
+                .filter(clazz -> SchemaLoader.class.isAssignableFrom(clazz))
+                .filter(clazz -> !Modifier.isAbstract(clazz.getModifiers()));
+    }
 
-		Properties properties = null;
+    private static Stream<SchemaLoader> getSchemaLoaderInstances() {
+        return getSchemaLoaderClasses().map(clazz -> {
+            SchemaLoader loader = null;
+            try {
+                loader = (SchemaLoader) clazz.newInstance();
+            } catch (IllegalAccessException | InstantiationException e) {
+                e.printStackTrace();
+            }
+            return loader;
+        }).filter(instance -> instance != null);
+    }
 
-		if (null == args || args.length == 0 || (properties = parser.parseArgs(args)) == null) {
-			System.out.println(parser.getHelp());
-			System.exit(0);
-		} else {
-			System.out.println("properties: " + properties);
-		}
+    public static List<CommandlineParameter> getMainCommandlineParameters(boolean forceNotRequired) {
+        String[] supportedTypes = (String[]) getSchemaLoaderInstances().flatMap(
+                loader -> loader.getSupportedTypes().stream())
+                .map(x -> (String) x)
+                .sorted()
+                .toArray(x -> new String[x]);
+        return Arrays.asList(
+                new CommandlineParameter.Builder("T", DBSchemaLoader.PARAMETERS_ENUM.DATABASE_TYPE.getName()).description(
+                        "Database server type")
+                        .options(supportedTypes)
+                        //.defaultValue(DBSchemaLoader.PARAMETERS_ENUM.DATABASE_TYPE.getDefaultValue())
+                        .valueDependentParametersProvider(SchemaLoader::getDbTypeDependentParameters)
+                        .required(!forceNotRequired)
+                        .build()
+        );
+    }
 
-		String type = properties.getProperty(DBSchemaLoader.PARAMETERS_ENUM.DATABASE_TYPE.getName());
+    private static List<CommandlineParameter> getDbTypeDependentParameters(String type) {
+        SchemaLoader loader = newInstance(type);
+        return loader.getCommandlineParameters();
+    }
 
-		SchemaLoader dbHelper = newInstance(type);
+    /**
+     * Main method allowing pass arguments to the class and setting all logging to
+     * be printed to console.
+     *
+     * @param args key-value (in the form of {@code "-<variable> value"})
+     *             parameters.
+     */
+    public static void main(String[] args) {
+        ParameterParser parser = new ParameterParser(true);
 
-		Parameters params = dbHelper.createParameters();
-		params.setProperties(properties);
+        parser.addOptions(getMainCommandlineParameters(false));
 
-		dbHelper.execute(params);
-	}
-	
-	public abstract P createParameters();
+        Properties properties = null;
 
-	public abstract void execute(Parameters params);
+        if (null == args || args.length == 0 || (properties = parser.parseArgs(args)) == null) {
+            System.out.println(parser.getHelp());
+            System.exit(0);
+        } else {
+            System.out.println("properties: " + properties);
+        }
 
-	public abstract void init(P props);
+        String type = properties.getProperty(DBSchemaLoader.PARAMETERS_ENUM.DATABASE_TYPE.getName());
 
-	public abstract List<String> getSupportedTypes();
+        SchemaLoader dbHelper = newInstance(type);
 
-	public boolean isSupported(String dbType) {
-		return getSupportedTypes().contains(dbType);
-	}
+        Parameters params = dbHelper.createParameters();
+        params.setProperties(properties);
 
-	public abstract String getDBUri();
+        dbHelper.execute(params);
+    }
 
-	public abstract List<CommandlineParameter> getSetupOptions();
+    public abstract P createParameters();
 
-	public abstract List<CommandlineParameter> getCommandlineParameters();
+    public abstract void execute(Parameters params);
 
-	/**
-	 * Method validates whether the connection can at least be eI stablished. If yes
-	 * then appropriate flag is set.
-	 */
-	public abstract Result validateDBConnection();
+    public abstract void init(P props);
 
-	/**
-	 * Method, if the connection is validated by {@code validateDBConnection},
-	 * checks whether desired database exists. If not it creates such database
-	 * using {@code *-installer-create-db.sql} schema file substituting it's
-	 * variables with ones provided.
-	 */
-	public abstract Result validateDBExists();
-	public abstract Result postInstallation();
-	public Result printInfo() {
-		String dataSourceUri = getDBUri();
+    public abstract List<String> getSupportedTypes();
 
-		ConfigBuilder builder = new ConfigBuilder();
-		builder.withBean(ds -> ds.name("dataSource").withBean(def -> def.name("default").with("uri", dataSourceUri)));
+    public boolean isSupported(String dbType) {
+        return getSupportedTypes().contains(dbType);
+    }
 
-		String configStr = null;
-		try (StringWriter writer = new StringWriter()) {
-			new ConfigWriter().write(writer, builder.build());
-			configStr = writer.toString();
-		} catch (IOException ex) {
-			// should not happen
-			configStr = "Failure: " + ex.getMessage();
-		}
-		Logger.getLogger(this.getClass().getCanonicalName())
-				.log(Level.INFO, "\n\nDatabase init.properties configuration:\n{0}\n", new Object[]{configStr});
-		return Result.ok;
-	}
+    public abstract String getDBUri();
 
-	/**
-	 * Method attempts to add XMPP admin user account to the database using
-	 * {@code AuthRepository}.
-	 */
-	public abstract Result addXmppAdminAccount();
+    public abstract List<CommandlineParameter> getSetupOptions();
 
-	/**
-	 * Method checks whether the connection to the database is possible and that
-	 * database of specified name exists. If yes then a schema file from
-	 * properties is loaded.
-	 *
-	 * @param fileName set of {@code String} with path to file
-	 */
-	public abstract Result loadSchemaFile( String fileName );
-	public abstract Result shutdown();
+    public abstract List<CommandlineParameter> getCommandlineParameters();
 
-	public abstract Result loadSchema(String schemaId, String version);
-	public abstract Result destroyDataSource();
+    /**
+     * Method validates whether the connection can at least be eI stablished. If yes
+     * then appropriate flag is set.
+     */
+    public abstract Result validateDBConnection();
+
+    /**
+     * Method, if the connection is validated by {@code validateDBConnection},
+     * checks whether desired database exists. If not it creates such database
+     * using {@code *-installer-create-db.sql} schema file substituting it's
+     * variables with ones provided.
+     */
+    public abstract Result validateDBExists();
+
+    public abstract Result postInstallation();
+
+    public Result printInfo() {
+        String dataSourceUri = getDBUri();
+
+        ConfigBuilder builder = new ConfigBuilder();
+        builder.withBean(ds -> ds.name("dataSource").withBean(def -> def.name("default").with("uri", dataSourceUri)));
+
+        String configStr = null;
+        try (StringWriter writer = new StringWriter()) {
+            new ConfigWriter().write(writer, builder.build());
+            configStr = writer.toString();
+        } catch (IOException ex) {
+            // should not happen
+            configStr = "Failure: " + ex.getMessage();
+        }
+        Logger.getLogger(this.getClass().getCanonicalName())
+                .log(Level.INFO, "\n\nDatabase init.properties configuration:\n{0}\n", new Object[]{configStr});
+        return Result.ok;
+    }
+
+    /**
+     * Method attempts to add XMPP admin user account to the database using
+     * {@code AuthRepository}.
+     */
+    public abstract Result addXmppAdminAccount();
+
+    /**
+     * Method checks whether the connection to the database is possible and that
+     * database of specified name exists. If yes then a schema file from
+     * properties is loaded.
+     *
+     * @param fileName set of {@code String} with path to file
+     */
+    public abstract Result loadSchemaFile(String fileName);
+
+    public abstract Result shutdown();
+
+    public abstract Result loadSchema(String schemaId, String version);
+
+    public abstract Result destroyDataSource();
 }
