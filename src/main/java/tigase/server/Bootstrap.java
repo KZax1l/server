@@ -51,83 +51,87 @@ import static tigase.conf.ConfiguratorAbstract.LOGGING_KEY;
 
 /**
  * Bootstrap class is responsible for initialization of Kernel to start Tigase XMPP Server.
- *
+ * <p>
  * Created by andrzej on 05.03.2016.
  */
 public class Bootstrap implements Lifecycle {
 
-	private static final Logger log = Logger.getLogger(Bootstrap.class.getCanonicalName());
+    private static final Logger log = Logger.getLogger(Bootstrap.class.getCanonicalName());
 
-	private final Kernel kernel;
-	private ConfigHolder config = new ConfigHolder();
+    private final Kernel kernel;
+    private ConfigHolder config = new ConfigHolder();
 
-	public Bootstrap() {
-		kernel = new Kernel("root");
-	}
+    public Bootstrap() {
+        kernel = new Kernel("root");
+    }
 
-	public void init(String[] args) throws ConfigReader.ConfigException, IOException {
-		config.loadConfiguration(args);
-		configureLogManager();
-	}
+    public void init(String[] args) throws ConfigReader.ConfigException, IOException {
+        config.loadConfiguration(args);
+        configureLogManager();
+    }
 
-	public void setProperties(Map<String,Object> props) {
-		this.config.setProperties(props);
-	}
+    public void setProperties(Map<String, Object> props) {
+        this.config.setProperties(props);
+    }
 
 
-	@Override
-	public void start() {
-		for (Map.Entry<String, Object> e : config.getProperties().entrySet()) {
-			if (e.getKey().startsWith("--")) {
-				String key = e.getKey().substring(2);
-				System.setProperty(key, e.getValue().toString());
-				if (CLUSTER_MODE.equals(e.getKey())) {
-					System.setProperty("tigase.cache", "false");
-				}					
-			}
-		}
+    @Override
+    public void start() {
+        for (Map.Entry<String, Object> e : config.getProperties().entrySet()) {
+            if (e.getKey().startsWith("--")) {
+                String key = e.getKey().substring(2);
+                Object value = e.getValue();
+                if (value instanceof ConfigReader.Variable) {
+                    value = ((ConfigReader.Variable) value).calculateValue();
+                }
+                System.setProperty(key, value.toString());
+                if (CLUSTER_MODE.equals(e.getKey())) {
+                    System.setProperty("tigase.cache", "false");
+                }
+            }
+        }
 
-		try {
-			if (XMPPServer.isOSGi()) {
-				kernel.registerBean("classUtilBean").asInstance(Class.forName("tigase.osgi.util.ClassUtilBean").newInstance()).exportable().exec();
-			} else {
-				kernel.registerBean("classUtilBean").asInstance(Class.forName("tigase.util.ClassUtilBean").newInstance()).exportable().exec();
-			}
-		} catch (ClassNotFoundException|InstantiationException|IllegalAccessException e) {
-			throw new RuntimeException(e);
-		}
+        try {
+            if (XMPPServer.isOSGi()) {
+                kernel.registerBean("classUtilBean").asInstance(Class.forName("tigase.osgi.util.ClassUtilBean").newInstance()).exportable().exec();
+            } else {
+                kernel.registerBean("classUtilBean").asInstance(Class.forName("tigase.util.ClassUtilBean").newInstance()).exportable().exec();
+            }
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
 
-		// register default types converter and properties bean configurator
-		kernel.registerBean(DefaultTypesConverter.class).exportable().exec();
-		kernel.registerBean(DSLBeanConfiguratorWithBackwardCompatibility.class).exportable().exec();
-		kernel.registerBean("eventBus").asInstance(EventBusFactory.getInstance()).exportable().exec();
+        // register default types converter and properties bean configurator
+        kernel.registerBean(DefaultTypesConverter.class).exportable().exec();
+        kernel.registerBean(DSLBeanConfiguratorWithBackwardCompatibility.class).exportable().exec();
+        kernel.registerBean("eventBus").asInstance(EventBusFactory.getInstance()).exportable().exec();
 
-		DSLBeanConfigurator configurator = kernel.getInstance(DSLBeanConfigurator.class);
-		configurator.setConfigHolder(config);
-		ModulesManagerImpl.getInstance().setBeanConfigurator(configurator);
+        DSLBeanConfigurator configurator = kernel.getInstance(DSLBeanConfigurator.class);
+        configurator.setConfigHolder(config);
+        ModulesManagerImpl.getInstance().setBeanConfigurator(configurator);
 
-		kernel.registerBean("logging").asClass(LoggingBean.class).setActive(true).setPinned(true).exec();
-		kernel.getInstance("logging");
+        kernel.registerBean("logging").asClass(LoggingBean.class).setActive(true).setPinned(true).exec();
+        kernel.getInstance("logging");
 
-		kernel.registerBean("beanSelector").asInstance(new ServerBeanSelector()).exportable().exec();
+        kernel.registerBean("beanSelector").asInstance(new ServerBeanSelector()).exportable().exec();
 
-		// if null then we register global subbeans
-		configurator.registerBeans(null, null, config.getProperties());
+        // if null then we register global subbeans
+        configurator.registerBeans(null, null, config.getProperties());
 
-		DependencyGrapher dg = new DependencyGrapher();
-		dg.setKernel(kernel);
+        DependencyGrapher dg = new DependencyGrapher();
+        dg.setKernel(kernel);
 
-		log.log(Level.CONFIG, dg.getDependencyGraph());
+        log.log(Level.CONFIG, dg.getDependencyGraph());
 
-		// this is called to make sure that data sources are properly initialized
-		if (ServerBeanSelector.getConfigType(kernel) != ConfigTypeEnum.SetupMode) {
-			DataSourceBean dataSource = kernel.getInstance(DataSourceBean.class);
-			if (dataSource == null || dataSource.getDataSourceNames().isEmpty()) {
-				throw new KernelException("Failed to initialize data sources!");
-			}
-		}
-		MessageRouter mr = kernel.getInstance("message-router");
-		mr.start();
+        // this is called to make sure that data sources are properly initialized
+        if (ServerBeanSelector.getConfigType(kernel) != ConfigTypeEnum.SetupMode) {
+            DataSourceBean dataSource = kernel.getInstance(DataSourceBean.class);
+            if (dataSource == null || dataSource.getDataSourceNames().isEmpty()) {
+                throw new KernelException("Failed to initialize data sources!");
+            }
+        }
+        MessageRouter mr = kernel.getInstance("message-router");
+        mr.start();
 
 //		StringBuilder sb = new StringBuilder("\n======");
 //		sb.append("\n");
@@ -146,32 +150,32 @@ public class Bootstrap implements Lifecycle {
 //		sb.append("======\n");
 //		System.out.println(sb);
 
-		try {
-			File f = new File("etc/config-dump.properties");
-			if (f.exists()) {
-				f.delete();
-			}
-			configurator.dumpConfiguration(f);
-		} catch (IOException ex) {
-			log.log(Level.FINE, "failed to dump configuration to file etc/config-dump.properties");
-		}
-	}
+        try {
+            File f = new File("etc/config-dump.properties");
+            if (f.exists()) {
+                f.delete();
+            }
+            configurator.dumpConfiguration(f);
+        } catch (IOException ex) {
+            log.log(Level.FINE, "failed to dump configuration to file etc/config-dump.properties");
+        }
+    }
 
-	@Override
-	public void stop() {
-		MessageRouter mr = kernel.getInstance("message-router");
-		mr.stop();
-	}
+    @Override
+    public void stop() {
+        MessageRouter mr = kernel.getInstance("message-router");
+        mr.stop();
+    }
 
-	public <T> T getInstance(String beanName) {
-		return kernel.getInstance(beanName);
-	}
+    public <T> T getInstance(String beanName) {
+        return kernel.getInstance(beanName);
+    }
 
-	public <T> T getInstance(Class<T> clazz) {
-		return kernel.getInstance(clazz);
-	}
-	
-	// moved to AbstractBeanConfigurator
+    public <T> T getInstance(Class<T> clazz) {
+        return kernel.getInstance(clazz);
+    }
+
+    // moved to AbstractBeanConfigurator
 //	public void registerBeans() {
 //	}
 //
@@ -196,83 +200,83 @@ public class Bootstrap implements Lifecycle {
 //		return parent.isAssignableFrom(requiredClass) ? annotation : null;
 //	}
 
-	protected Kernel getKernel() {
-		return kernel;
-	}
+    protected Kernel getKernel() {
+        return kernel;
+    }
 
-	// Common logging setup
-	private Map<String, String> loggingSetup = new LinkedHashMap<String, String>(10);
+    // Common logging setup
+    private Map<String, String> loggingSetup = new LinkedHashMap<String, String>(10);
 
-	private void configureLogManager() {
-		Map<String, Object> cfg = prepareLogManagerConfiguration(config.getProperties());
-		setupLogManager(cfg);
-	}
+    private void configureLogManager() {
+        Map<String, Object> cfg = prepareLogManagerConfiguration(config.getProperties());
+        setupLogManager(cfg);
+    }
 
-	private Map<String, Object> prepareLogManagerConfiguration(Map<String, Object> params) {
-		Map<String, Object> defaults = new HashMap<>();
-		String              levelStr = ".level";
+    private Map<String, Object> prepareLogManagerConfiguration(Map<String, Object> params) {
+        Map<String, Object> defaults = new HashMap<>();
+        String levelStr = ".level";
 
-		if ((Boolean) params.get(GEN_TEST)) {
-			defaults.put(LOGGING_KEY + levelStr, "WARNING");
-		} else {
-			defaults.put(LOGGING_KEY + levelStr, "CONFIG");
-		}
-		defaults.put(LOGGING_KEY + "handlers",
-				"java.util.logging.ConsoleHandler java.util.logging.FileHandler");
-		defaults.put(LOGGING_KEY + "java.util.logging.ConsoleHandler.formatter",
-				"tigase.util.LogFormatter");
-		defaults.put(LOGGING_KEY + "java.util.logging.ConsoleHandler.level", "WARNING");
-		defaults.put(LOGGING_KEY + "java.util.logging.FileHandler.append", "true");
-		defaults.put(LOGGING_KEY + "java.util.logging.FileHandler.count", "5");
-		defaults.put(LOGGING_KEY + "java.util.logging.FileHandler.formatter",
-				"tigase.util.LogFormatter");
-		defaults.put(LOGGING_KEY + "java.util.logging.FileHandler.limit", "10000000");
-		defaults.put(LOGGING_KEY + "java.util.logging.FileHandler.pattern",
-				"logs/tigase.log");
-		defaults.put(LOGGING_KEY + "tigase.useParentHandlers", "true");
-		defaults.put(LOGGING_KEY + "java.util.logging.FileHandler.level", "ALL");
-		if (params.get(GEN_DEBUG) != null) {
-			String[] packs = ((String) params.get(GEN_DEBUG)).split(",");
+        if ((Boolean) params.get(GEN_TEST)) {
+            defaults.put(LOGGING_KEY + levelStr, "WARNING");
+        } else {
+            defaults.put(LOGGING_KEY + levelStr, "CONFIG");
+        }
+        defaults.put(LOGGING_KEY + "handlers",
+                "java.util.logging.ConsoleHandler java.util.logging.FileHandler");
+        defaults.put(LOGGING_KEY + "java.util.logging.ConsoleHandler.formatter",
+                "tigase.util.LogFormatter");
+        defaults.put(LOGGING_KEY + "java.util.logging.ConsoleHandler.level", "WARNING");
+        defaults.put(LOGGING_KEY + "java.util.logging.FileHandler.append", "true");
+        defaults.put(LOGGING_KEY + "java.util.logging.FileHandler.count", "5");
+        defaults.put(LOGGING_KEY + "java.util.logging.FileHandler.formatter",
+                "tigase.util.LogFormatter");
+        defaults.put(LOGGING_KEY + "java.util.logging.FileHandler.limit", "10000000");
+        defaults.put(LOGGING_KEY + "java.util.logging.FileHandler.pattern",
+                "logs/tigase.log");
+        defaults.put(LOGGING_KEY + "tigase.useParentHandlers", "true");
+        defaults.put(LOGGING_KEY + "java.util.logging.FileHandler.level", "ALL");
+        if (params.get(GEN_DEBUG) != null) {
+            String[] packs = ((String) params.get(GEN_DEBUG)).split(",");
 
-			for (String pack : packs) {
-				defaults.put(LOGGING_KEY + "tigase." + pack + ".level", "ALL");
-			}    // end of for (String pack: packs)
-		}
-		if (params.get(GEN_DEBUG_PACKAGES) != null) {
-			String[] packs = ((String) params.get(GEN_DEBUG_PACKAGES)).split(",");
+            for (String pack : packs) {
+                defaults.put(LOGGING_KEY + "tigase." + pack + ".level", "ALL");
+            }    // end of for (String pack: packs)
+        }
+        if (params.get(GEN_DEBUG_PACKAGES) != null) {
+            String[] packs = ((String) params.get(GEN_DEBUG_PACKAGES)).split(",");
 
-			for (String pack : packs) {
-				defaults.put(LOGGING_KEY + pack + ".level", "ALL");
-			}    // end of for (String pack: packs)
-		}
+            for (String pack : packs) {
+                defaults.put(LOGGING_KEY + pack + ".level", "ALL");
+            }    // end of for (String pack: packs)
+        }
 
-		return defaults;
-	}
+        return defaults;
+    }
 
-	private void setupLogManager( Map<String, Object> properties ) {
-		Set<Map.Entry<String, Object>> entries = properties.entrySet();
-		StringBuilder buff = new StringBuilder( 200 );
+    private void setupLogManager(Map<String, Object> properties) {
+        Set<Map.Entry<String, Object>> entries = properties.entrySet();
+        StringBuilder buff = new StringBuilder(200);
 
-		for ( Map.Entry<String, Object> entry : entries ) {
-			if ( entry.getKey().startsWith( LOGGING_KEY ) ){
-				String key = entry.getKey().substring( LOGGING_KEY.length() );
-				loggingSetup.put( key, entry.getValue().toString() );
-			}
-		}
+        for (Map.Entry<String, Object> entry : entries) {
+            if (entry.getKey().startsWith(LOGGING_KEY)) {
+                String key = entry.getKey().substring(LOGGING_KEY.length());
+                loggingSetup.put(key, entry.getValue().toString());
+            }
+        }
 
-		for ( String key : loggingSetup.keySet() ) {
-			String entry = loggingSetup.get( key );
-			buff.append( key ).append( "=" ).append( entry ).append( "\n" );
-			if ( key.equals( "java.util.logging.FileHandler.pattern" ) ){
-				File log_path = new File( entry ).getParentFile();
-				if ( !log_path.exists() ){
-					log_path.mkdirs();
-				}
-			}    // end of if (key.equals())
-		}      // end of if (entry.getKey().startsWith(LOGGING_KEY))
+        for (String key : loggingSetup.keySet()) {
+            String entry = loggingSetup.get(key);
+            buff.append(key).append("=").append(entry).append("\n");
+            if (key.equals("java.util.logging.FileHandler.pattern")) {
+                File log_path = new File(entry).getParentFile();
+                if (!log_path.exists()) {
+                    log_path.mkdirs();
+                }
+            }    // end of if (key.equals())
+        }      // end of if (entry.getKey().startsWith(LOGGING_KEY))
 
-		// System.out.println("Setting logging: \n" + buff.toString());
-		ConfiguratorAbstract.loadLogManagerConfig(buff.toString());
-		log.config("DONE");
-	}
+        // System.out.println("Setting logging: \n" + buff.toString());
+        ConfiguratorAbstract.loadLogManagerConfig(buff.toString());
+        log.config("DONE");
+    }
 }
