@@ -33,213 +33,223 @@ import java.util.Set;
  */
 public class BeanConfig {
 
-	private final String beanName;
-	private final Class<?> clazz;
-	private final Map<Field, Dependency> fieldDependencies = new HashMap<Field, Dependency>();
-	private boolean exportable;
-	private boolean pinned = true;
-	private BeanConfig factory;
-	private Kernel kernel;
-	private Source source = Source.hardcoded;
-	private State state;
+    private final String beanName;
+    private final Class<?> clazz;
+    private final Map<Field, Dependency> fieldDependencies = new HashMap<Field, Dependency>();
+    private boolean exportable;
+    private boolean pinned = true;
+    private BeanConfig factory;
+    private Kernel kernel;
+    private Source source = Source.hardcoded;
+    private State state;
 
-	private Set<BeanConfig> registeredBeans = new HashSet<>();
-	private Set<BeanConfig> registeredBy = new HashSet<>();
+    private Set<BeanConfig> registeredBeans = new HashSet<>();
+    private Set<BeanConfig> registeredBy = new HashSet<>();
 
-	BeanConfig(String id, Class<?> clazz) {
-		super();
-		this.beanName = id;
-		this.clazz = clazz;
-	}
+    private String beanInstanceName = null;
 
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		BeanConfig other = (BeanConfig) obj;
-		if (beanName == null) {
-			if (other.beanName != null)
-				return false;
-		} else if (!beanName.equals(other.beanName))
-			return false;
-		return true;
-	}
+    BeanConfig(String id, Class<?> clazz) {
+        super();
+        this.beanName = id;
+        this.clazz = clazz;
+    }
 
-	/**
-	 * Returns name of bean.
-	 *
-	 * @return name of bean.
-	 */
-	public String getBeanName() {
-		return beanName;
-	}
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        BeanConfig other = (BeanConfig) obj;
+        if (beanName == null) {
+            if (other.beanName != null)
+                return false;
+        } else if (!beanName.equals(other.beanName))
+            return false;
+        return true;
+    }
 
-	/**
-	 * Returns class of bean.
-	 *
-	 * @return class of bean.
-	 */
-	public Class<?> getClazz() {
-		return clazz;
-	}
+    /**
+     * Returns name of bean.
+     *
+     * @return name of bean.
+     */
+    public String getBeanName() {
+        return beanName;
+    }
 
-	/**
-	 * Return factory of bean.
-	 *
-	 * @return factory of bean. It may return <code>null</code> if default
-	 * factory is used.
-	 */
-	public BeanConfig getFactory() {
-		return factory;
-	}
+    /**
+     * Returns class of bean.
+     *
+     * @return class of bean.
+     */
+    public Class<?> getClazz() {
+        return clazz;
+    }
 
-	void setFactory(final BeanConfig bfc) {
-		this.factory = bfc;
-	}
+    /**
+     * Return factory of bean.
+     *
+     * @return factory of bean. It may return <code>null</code> if default
+     * factory is used.
+     */
+    public BeanConfig getFactory() {
+        return factory;
+    }
 
-	/**
-	 * Returns map of dependencies. Note that Kernel has field-based-dependency
-	 * model, it means that each dependency must be related to field in class.
-	 *
-	 * @return map of dependencies.
-	 */
-	public Map<Field, Dependency> getFieldDependencies() {
-		return fieldDependencies;
-	}
+    void setFactory(final BeanConfig bfc) {
+        this.factory = bfc;
+    }
 
-	/**
-	 * Returns {@link Kernel} managing this bean.
-	 *
-	 * @return {@link Kernel}.
-	 */
-	public Kernel getKernel() {
-		return kernel;
-	}
+    /**
+     * Returns map of dependencies. Note that Kernel has field-based-dependency
+     * model, it means that each dependency must be related to field in class.
+     *
+     * @return map of dependencies.
+     */
+    public Map<Field, Dependency> getFieldDependencies() {
+        return fieldDependencies;
+    }
 
-	void setKernel(Kernel kernel) {
-		this.kernel = kernel;
-	}
+    /**
+     * Returns {@link Kernel} managing this bean.
+     *
+     * @return {@link Kernel}.
+     */
+    public Kernel getKernel() {
+        return kernel;
+    }
 
-	/**
-	 * Returns state of bean.
-	 *
-	 * @return state of bean.
-	 */
-	public State getState() {
-		return state;
-	}
+    void setKernel(Kernel kernel) {
+        this.kernel = kernel;
+    }
 
-	void setState(State state) {
-		this.state = state;
-	}
+    /**
+     * Returns state of bean.
+     *
+     * @return state of bean.
+     */
+    public State getState() {
+        return state;
+    }
 
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((beanName == null) ? 0 : beanName.hashCode());
-		return result;
-	}
+    void setState(State state) {
+        this.state = state;
+    }
 
-	/**
-	 * Checks if bean may be visible in child Kernels.
-	 *
-	 * @return <code>true</code> if beans will be visible in child Kernel (other
-	 * Kernels deployed as beans to current Kernel).
-	 */
-	public boolean isExportable() {
-		return exportable;
-	}
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((beanName == null) ? 0 : beanName.hashCode());
+        return result;
+    }
 
-	void setExportable(boolean value) {
-		this.exportable = value;
-	}
+    /**
+     * Checks if bean may be visible in child Kernels.
+     *
+     * @return <code>true</code> if beans will be visible in child Kernel (other
+     * Kernels deployed as beans to current Kernel).
+     */
+    public boolean isExportable() {
+        return exportable;
+    }
 
-	public boolean isPinned() {
-		return pinned;
-	}
+    void setExportable(boolean value) {
+        this.exportable = value;
+    }
 
-	public void setPinned(boolean pinned) {
-		this.pinned = pinned;
-	}
+    public boolean isPinned() {
+        return pinned;
+    }
 
-	public Source getSource() {
-		return source;
-	}
+    public void setPinned(boolean pinned) {
+        this.pinned = pinned;
+    }
 
-	void setSource(Source source) {
-		this.source = source;
-	}
+    public Source getSource() {
+        return source;
+    }
 
-	@Override
-	public String toString() {
-		final StringBuilder sb = new StringBuilder("BeanConfig{");
-		sb.append("beanName='").append(beanName).append('\'');
-		sb.append(", clazz=").append(clazz);
-		sb.append(", exportable=").append(exportable);
-		sb.append(", pinned=").append(pinned);
-		sb.append(", factory=").append(factory);
-		sb.append(", kernel=").append(kernel.getName());
-		sb.append(", source=").append(source);
-		sb.append(", state=").append(state);
-		sb.append('}');
-		return sb.toString();
-	}
+    void setSource(Source source) {
+        this.source = source;
+    }
 
-	public Set<BeanConfig> getRegisteredBeans() {
-		return registeredBeans;
-	}
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder("BeanConfig{");
+        sb.append("beanName='").append(beanName).append('\'');
+        sb.append(", clazz=").append(clazz);
+        sb.append(", exportable=").append(exportable);
+        sb.append(", pinned=").append(pinned);
+        sb.append(", factory=").append(factory);
+        sb.append(", kernel=").append(kernel.getName());
+        sb.append(", source=").append(source);
+        sb.append(", state=").append(state);
+        sb.append('}');
+        return sb.toString();
+    }
 
-	public void addRegisteredBean(BeanConfig beanConfig) {
-		registeredBeans.add(beanConfig);
-	}
+    public Set<BeanConfig> getRegisteredBeans() {
+        return registeredBeans;
+    }
 
-	public void removeRegisteredBean(BeanConfig beanConfig) {
-		registeredBeans.remove(beanConfig);
-	}
+    public void addRegisteredBean(BeanConfig beanConfig) {
+        registeredBeans.add(beanConfig);
+    }
 
-	public void addRegisteredBy(BeanConfig beanConfig) {
-		registeredBy.add(beanConfig);
-	}
+    public void removeRegisteredBean(BeanConfig beanConfig) {
+        registeredBeans.remove(beanConfig);
+    }
 
-	public boolean removeRegisteredBy(BeanConfig beanConfig) {
-		registeredBy.remove(beanConfig);
-		return registeredBy.isEmpty();
-	}
+    public void addRegisteredBy(BeanConfig beanConfig) {
+        registeredBy.add(beanConfig);
+    }
 
-	public Set<BeanConfig> getRegisteredBy() {
-		return registeredBy;
-	}
+    public boolean removeRegisteredBy(BeanConfig beanConfig) {
+        registeredBy.remove(beanConfig);
+        return registeredBy.isEmpty();
+    }
 
-	/**
-	 * State of bean.
-	 */
-	public enum State {
-		/**
-		 * Bean is initialized and ready to use.
-		 */
-		initialized,
-		/**
-		 * Instance of bean is created, but bean isn't initialized.
-		 */
-		instanceCreated,
-		/**
-		 * Bean class is registered, but instance of bean isn't created yet.
-		 */
-		registered,
-		/**
-		 * Bean class is registered, but it CANNOT be used!!! Should be treated as not registered at all.
-		 */
-		inactive,
-	}
+    public Set<BeanConfig> getRegisteredBy() {
+        return registeredBy;
+    }
 
-	public enum Source {
-		hardcoded,
-		annotation,
-		configuration
-	}
+    protected String getBeanInstanceName() {
+        return beanInstanceName == null ? getBeanName() : beanInstanceName;
+    }
+
+    protected void setBeanInstanceName(String beanInstanceName) {
+        this.beanInstanceName = beanInstanceName;
+    }
+
+    /**
+     * State of bean.
+     */
+    public enum State {
+        /**
+         * Bean is initialized and ready to use.
+         */
+        initialized,
+        /**
+         * Instance of bean is created, but bean isn't initialized.
+         */
+        instanceCreated,
+        /**
+         * Bean class is registered, but instance of bean isn't created yet.
+         */
+        registered,
+        /**
+         * Bean class is registered, but it CANNOT be used!!! Should be treated as not registered at all.
+         */
+        inactive,
+    }
+
+    public enum Source {
+        hardcoded,
+        annotation,
+        configuration
+    }
 }
