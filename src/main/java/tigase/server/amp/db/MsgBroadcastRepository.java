@@ -152,7 +152,7 @@ public abstract class MsgBroadcastRepository<T,S extends DataSource> implements 
 		}
 
 		@Override
-		public BroadcastMsg getBroadcastMsg(String id) {
+		public MsgBroadcastRepository.BroadcastMsg getBroadcastMsg(String id) {
 			return getRepository("default").getBroadcastMsg(id);
 		}
 
@@ -162,7 +162,7 @@ public abstract class MsgBroadcastRepository<T,S extends DataSource> implements 
 		}
 
 		@Override
-		public Collection<BroadcastMsg> getBroadcastMessages() {
+		public Collection<MsgBroadcastRepository.BroadcastMsg> getBroadcastMessages() {
 			return getRepository("default").getBroadcastMessages();
 		}
 

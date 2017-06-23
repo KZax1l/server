@@ -94,7 +94,7 @@ public class MessageCarbons
 	private static final Function<String,Object> RESOURCES_MAP_FACTORY = (k) -> { return new ConcurrentHashMap<JID,Boolean>(); };
 	
 	private final EventBus eventBus = EventBusFactory.getInstance();
-	private Message messageProcessor = new Message();
+	private tigase.xmpp.impl.Message messageProcessor = new tigase.xmpp.impl.Message();
 	
 	@Override
 	public String id() {
