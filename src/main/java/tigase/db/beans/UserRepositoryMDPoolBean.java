@@ -32,11 +32,13 @@ import tigase.stats.StatisticsCollector;
 import tigase.stats.StatisticsList;
 
 /**
+ * Class implements bean for multi domain pool for user repositories.
+ *
  * Created by andrzej on 07.03.2016.
  */
 @Bean(name="userRepository", parent = Kernel.class, exportable = true, active = true)
 @ConfigType({ConfigTypeEnum.DefaultMode, ConfigTypeEnum.SessionManagerMode, ConfigTypeEnum.ConnectionManagersMode,
-			 ConfigTypeEnum.ComponentMode})
+		ConfigTypeEnum.ComponentMode})
 public class UserRepositoryMDPoolBean extends UserRepositoryMDImpl {
 
 	@Override

@@ -41,6 +41,13 @@ import java.util.logging.Logger;
 //~--- classes ----------------------------------------------------------------
 
 /**
+ * Pool for user repositories.
+ * <br/>
+ * This pool should be used if connection to user storage is blocking or synchronized,
+ * ie. implemented using single connection.<br/>
+ * If implementation of <code>UserRepository</code> uses connection pool or non blocking, concurrent
+ * access to user storage (ie. <code>DataSourcePool</code>), then this pool is not need.
+ *
  * Created: Jan 28, 2009 8:46:53 PM
  *
  * @author <a href="mailto:artur.hefczyc@tigase.org">Artur Hefczyc</a>
@@ -53,7 +60,7 @@ public class UserRepositoryPool implements UserRepository, RepositoryPool<UserRe
 
 	private Map<String, Object> cache = null;
 	private LinkedBlockingQueue<UserRepository> repoPool =
-		new LinkedBlockingQueue<UserRepository>();
+			new LinkedBlockingQueue<UserRepository>();
 
 	//~--- methods --------------------------------------------------------------
 
@@ -475,7 +482,7 @@ public class UserRepositoryPool implements UserRepository, RepositoryPool<UserRe
 	 * Method description
 	 *
 	 *
-	 * 
+	 *
 	 */
 	public UserRepository takeRepo() {
 		try {

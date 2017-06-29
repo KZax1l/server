@@ -38,6 +38,7 @@ import java.util.logging.Logger;
 //~--- classes ----------------------------------------------------------------
 
 /**
+ * Implementation of multi domain pool for authentication repositories.
  * Created: Mar 27, 2010 9:10:21 PM
  *
  * @author <a href="mailto:artur.hefczyc@tigase.org">Artur Hefczyc</a>
@@ -59,7 +60,7 @@ public abstract class AuthRepositoryMDImpl extends MDPoolBeanWithStatistics<Auth
 
 	@Override
 	public void addUser(BareJID user, String password)
- throws TigaseDBException {
+			throws TigaseDBException {
 		AuthRepository repo = getRepo(user.getDomain());
 
 		if (repo != null) {
@@ -67,7 +68,7 @@ public abstract class AuthRepositoryMDImpl extends MDPoolBeanWithStatistics<Auth
 		} else {
 			log.log(Level.WARNING,
 					"Couldn't obtain user repository for domain: " + user.getDomain()
-						+ ", not even default one!");
+							+ ", not even default one!");
 		}
 	}
 
@@ -82,7 +83,7 @@ public abstract class AuthRepositoryMDImpl extends MDPoolBeanWithStatistics<Auth
 		} else {
 			log.log(Level.WARNING,
 					"Couldn't obtain user repository for domain: " + user.getDomain()
-						+ ", not even default one!");
+							+ ", not even default one!");
 		}
 
 		return false;
@@ -174,7 +175,7 @@ public abstract class AuthRepositoryMDImpl extends MDPoolBeanWithStatistics<Auth
 
 	@Override
 	public boolean otherAuth(Map<String, Object> authProps)
- throws TigaseDBException, AuthorizationException {
+			throws TigaseDBException, AuthorizationException {
 		AuthRepository repo = getRepo((String) authProps.get(SERVER_NAME_KEY));
 
 		if (repo != null) {
@@ -182,8 +183,8 @@ public abstract class AuthRepositoryMDImpl extends MDPoolBeanWithStatistics<Auth
 		} else {
 			log.log(Level.WARNING,
 					"Couldn't obtain user repository for domain: "
- + authProps.get(SERVER_NAME_KEY)
-					+ ", not even default one!");
+							+ authProps.get(SERVER_NAME_KEY)
+							+ ", not even default one!");
 		}
 
 		return false;
@@ -192,7 +193,7 @@ public abstract class AuthRepositoryMDImpl extends MDPoolBeanWithStatistics<Auth
 	@Override
 	@Deprecated
 	public boolean plainAuth(BareJID user, String password)
- throws TigaseDBException, AuthorizationException {
+			throws TigaseDBException, AuthorizationException {
 		AuthRepository repo = getRepo(user.getDomain());
 
 		if (repo != null) {
@@ -200,7 +201,7 @@ public abstract class AuthRepositoryMDImpl extends MDPoolBeanWithStatistics<Auth
 		} else {
 			log.log(Level.WARNING,
 					"Couldn't obtain user repository for domain: " + user.getDomain()
-						+ ", not even default one!");
+							+ ", not even default one!");
 		}
 
 		return false;
@@ -215,8 +216,8 @@ public abstract class AuthRepositoryMDImpl extends MDPoolBeanWithStatistics<Auth
 		} else {
 			log.log(Level.WARNING,
 					"Couldn't obtain user repository for domain: "
- + authProps.get(SERVER_NAME_KEY)
-					+ ", not even default one!");
+							+ authProps.get(SERVER_NAME_KEY)
+							+ ", not even default one!");
 		}
 	}
 
@@ -234,7 +235,7 @@ public abstract class AuthRepositoryMDImpl extends MDPoolBeanWithStatistics<Auth
 		} else {
 			log.log(Level.WARNING,
 					"Couldn't obtain user repository for domain: " + user.getDomain()
-						+ ", not even default one!");
+							+ ", not even default one!");
 		}
 	}
 
