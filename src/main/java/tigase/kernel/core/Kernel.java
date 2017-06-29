@@ -90,7 +90,7 @@ public class Kernel {
 
         if (log.isLoggable(Level.CONFIG)) {
             log.log(Level.CONFIG, "[{0}] Initialising bean, bc={1}, createdBeansConfig={2}, deep={3}",
-                    new Object[]{tmpBC.getBeanName(), tmpBC, createdBeansConfig, deep});
+                    new Object[] {tmpBC.getBeanName(), tmpBC, createdBeansConfig, deep});
         }
 
         if (beanConfig.getState() == State.initialized)
@@ -200,9 +200,9 @@ public class Kernel {
                         "For more information please peruse ACS documentation.",};
                 TigaseRuntime.getTigaseRuntime().shutdownTigase(msg);
             }
-            throw new KernelException("Can't create instance of bean '" + beanConfig.getBeanName() + "' (class: " + beanConfig.getClazz() + ")", e);
+            throw new KernelException("Can't create instance of bean '" + beanConfig.getBeanName()  + "' (class: " + beanConfig.getClazz() + ")", e);
         } catch (Exception e) {
-            throw new KernelException("Can't create instance of bean '" + beanConfig.getBeanName() + "' (class: " + beanConfig.getClazz() + ")", e);
+            throw new KernelException("Can't create instance of bean '" + beanConfig.getBeanName() + "' (class: " + beanConfig.getClazz() + ")" , e);
         }
     }
 
@@ -333,7 +333,8 @@ public class Kernel {
 
         if (bcs.size() > 1) {
             throw new KernelException("Too many beans implemented class " + beanClass);
-        } else if (bcs.isEmpty() && this.parent != null && this.parent != this) {
+        }
+        else if (bcs.isEmpty() && this.parent != null && this.parent != this) {
             return this.parent.getInstance(beanClass, false);
         }
 
@@ -372,7 +373,7 @@ public class Kernel {
 
         if (log.isLoggable(Level.CONFIG)) {
             log.log(Level.CONFIG, "[{0}] Creating instance of bean {1}: bc={2}, parent={3}, state={4}",
-                    new Object[]{getName(), beanName, bc, parent, (bc != null ? bc.getState() : "n/a")});
+                    new Object[] {getName(), beanName, bc, parent, (bc != null ? bc.getState() : "n/a")});
         }
 
         if (bc == null && parent != null && parent.isBeanClassRegistered(beanName)) {
@@ -494,13 +495,15 @@ public class Kernel {
     /**
      * Injects data to bean.
      *
-     * @param data               data to be injected.
-     * @param dependency         dependency definition.
-     * @param toBean             destination bean.
+     * @param data data to be injected.
+     * @param dependency dependency definition.
+     * @param toBean destination bean.
      * @param forceNullInjection if <code>true</code> then null will be injected even if null is not allowed for this
-     *                           dependency definition. In this case, Exception "Can't inject <null>" will not be throwed.
+     * dependency definition. In this case, Exception "Can't inject <null>" will not be throwed.
+     *
      * @return <code>true</code> if injection was successfull, <code>false</code> only in case of forcing null injection
      * on not-null dependency.
+     *
      * @throws IllegalAccessException
      * @throws IllegalArgumentException
      * @throws InvocationTargetException
@@ -566,7 +569,7 @@ public class Kernel {
 
         if (log.isLoggable(Level.CONFIG)) {
             log.log(Level.CONFIG, "[{0}] Injecting dependencies, bean: {1}, dep: {2}, createdBeansConfig: {3}, deep: {4}",
-                    new Object[]{getName(), bean, dep, createdBeansConfig, deep});
+                    new Object[] {getName(), bean, dep, createdBeansConfig, deep});
         }
 
         for (BeanConfig b : dependentBeansConfigs) {
@@ -577,7 +580,7 @@ public class Kernel {
                 if (beanToInject == null) {
                     try {
                         initBean(b, createdBeansConfig, deep + 1);
-                    } catch (InvocationTargetException | KernelException | InstantiationException ex) {
+                    } catch (InvocationTargetException|KernelException|InstantiationException ex) {
                         log.log(Level.WARNING, "Could not initialize bean " + b.getBeanName() + " (class: " + b.getClazz() + ")" + ", skipping injection of this bean" + ExceptionUtilities
                                 .getExceptionRootCause(ex, true));
                         log.log(Level.CONFIG, "Could not initialize bean " + b.getBeanName() + " (class: " + b.getClazz() + ")" + ", skipping injection of this bean", ex);
@@ -690,7 +693,7 @@ public class Kernel {
         return false;
     }
 
-    void injectIfRequired(final BeanConfig beanConfig) {
+    protected void injectIfRequired(final BeanConfig beanConfig) {
         try {
             if (!isThereSomethingWaitingFor(beanConfig)) {
                 // nothing is waiting for this bean. Skipping initialization.
@@ -753,7 +756,7 @@ public class Kernel {
             throws IllegalAccessException, InstantiationException, InvocationTargetException {
         if (log.isLoggable(Level.CONFIG)) {
             log.log(Level.CONFIG, "[{0}] Injecting dependency, dep: {1}",
-                    new Object[]{getName(), dep});
+                    new Object[] {getName(), dep});
         }
 
         BeanConfig depbc = dep.getBeanConfig();
@@ -772,7 +775,7 @@ public class Kernel {
 
         if (log.isLoggable(Level.CONFIG)) {
             log.log(Level.CONFIG, "[{0}] Injecting dependencies, dps: {1}",
-                    new Object[]{getName(), dps});
+                    new Object[] {getName(), dps});
         }
 
         for (Dependency dep : dps) {
@@ -838,7 +841,7 @@ public class Kernel {
         //destinationKernel.injectIfRequired(dbc);
     }
 
-    BeanConfig lnInternal(String exportingBeanName, Kernel destinationKernel, String destinationName) {
+    BeanConfig lnInternal(String exportingBeanName, Kernel destinationKernel, String destinationName){
         final BeanConfig sbc = dependencyManager.getBeanConfig(exportingBeanName);
         // Object bean = getInstance(sbc.getBeanName());
         if (sbc == null)
@@ -853,7 +856,7 @@ public class Kernel {
 
     private Map<String, Link> registeredLinks = new HashMap<>();
 
-    private class Link {
+    private class Link{
         String exportingBeanName;
         Kernel destinationKernel;
         String destinationName;
@@ -1020,7 +1023,7 @@ public class Kernel {
             throws IllegalAccessException, InstantiationException, InvocationTargetException {
         if (log.isLoggable(Level.CONFIG)) {
             log.log(Level.CONFIG, "[{0}] Finishing injecting dependencies, queue: {1}",
-                    new Object[]{getName(), queue});
+                    new Object[] {getName(), queue});
         }
 
         if (queue == null) {
