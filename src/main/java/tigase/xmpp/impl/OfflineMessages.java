@@ -137,12 +137,6 @@ public class OfflineMessages
 		return ID;
 	}
 
-	@Override
-	public void init(Map<String, Object> settings) throws TigaseDBException {
-		super.init(settings);
-		defHost = DNSResolverFactory.getInstance().getDefaultHost();
-	}
-
 	/**
 	 * {@inheritDoc}
 	 *
@@ -498,7 +492,7 @@ public class OfflineMessages
 		switch (pac.getElemName()) {
 			case "message":
 				if (type == null || type == StanzaType.normal || type == StanzaType.chat) {
-					// support for XEP-0334 Message Processing Hints					
+					// support for XEP-0334 Message Processing Hints
 					if (pac.getAttributeStaticStr( MESSAGE_HINTS_NO_STORE, "xmlns") == MESSAGE_HINTS_XMLNS)
 						return false;
 					if (pac.getElemCDataStaticStr( tigase.server.Message.MESSAGE_BODY_PATH ) != null)

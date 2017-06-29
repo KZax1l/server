@@ -26,6 +26,7 @@ import tigase.db.NonAuthUserRepository;
 import tigase.db.TigaseDBException;
 import tigase.kernel.beans.Bean;
 import tigase.kernel.beans.Inject;
+import tigase.kernel.beans.config.ConfigField;
 import tigase.server.Iq;
 import tigase.server.Packet;
 import tigase.server.PolicyViolationException;
@@ -63,19 +64,25 @@ public class JabberIqRoster
 	/** Field description */
 	public static final String ANON = "anon";
 	private static final String[][] ELEMENTS = {
-		{ Iq.ELEM_NAME, Iq.QUERY_NAME }, { Iq.ELEM_NAME, Iq.QUERY_NAME }, { Iq.ELEM_NAME, Iq.QUERY_NAME }
+			{ Iq.ELEM_NAME, Iq.QUERY_NAME }, { Iq.ELEM_NAME, Iq.QUERY_NAME }, { Iq.ELEM_NAME, Iq.QUERY_NAME }
 	};
 	/** Private logger for class instance. */
 	private static final Logger log = Logger.getLogger( JabberIqRoster.class.getName() );
 	private static final String[] XMLNSS = { RosterAbstract.XMLNS,
-																					 RosterAbstract.XMLNS_DYNAMIC, RosterAbstract.XMLNS_LOAD };
+			RosterAbstract.XMLNS_DYNAMIC, RosterAbstract.XMLNS_LOAD };
 	private static final String[] IQ_QUERY_ITEM_PATH = { Iq.ELEM_NAME, Iq.QUERY_NAME,
-																											 "item" };
+			"item" };
 	/** unique ID of the plugin */
 	protected static final String ID = RosterAbstract.XMLNS;
 	/** variable holding setting regarding auto authorisation of items added to
 	 * user roset */
-	private static boolean autoAuthorize = false;
+	@ConfigField(desc = "Automatically authorize subscription requests", alias = AUTO_AUTHORIZE_PROP_KEY)
+	private boolean autoAuthorize = false;
+
+	@ConfigField(desc = "Allow empty names in roster", alias = "empty_name_enabled")
+	private boolean emptyNameAllowed = false;
+	@ConfigField(desc = "Max roster size", alias = "max_roster_size")
+	private int maxRosterSize = 0;
 	//~--- fields ---------------------------------------------------------------
 	/** instance of class implementing {@link RosterAbstract} */
 	protected RosterAbstract roster_util = getRosterUtil();
@@ -95,16 +102,20 @@ public class JabberIqRoster
 		return ID;
 	}
 
-	@Override
-	public void init( Map<String, Object> settings ) throws TigaseDBException {
-		autoAuthorize = Boolean.parseBoolean( (String) settings.get( AUTO_AUTHORIZE_PROP_KEY ) );
-		if ( autoAuthorize ){
-			log.config( "Automatic presence subscription of new roster items enabled,"
-									+ "results in less strict XMPP specs compatibility " );
-		}
-		if ( roster_util != null ){
-			roster_util.setProperties( settings );
-		}
+	public boolean isEmptyNameAllowed() {
+		return roster_util.isEmptyNameAllowed();
+	}
+
+	public void setEmptyNameAllowed(boolean emptyNameAllowed) {
+		roster_util.setEmptyNameAllowed(emptyNameAllowed);
+	}
+
+	public int getMaxRosterSize() {
+		return roster_util.getMaxRosterSize();
+	}
+
+	public void setMaxRosterSize(int maxRosterSize) {
+		roster_util.setMaxRosterSize(maxRosterSize);
 	}
 
 	/**
@@ -118,7 +129,7 @@ public class JabberIqRoster
 	 */
 	@Override
 	public void process( Packet packet, XMPPResourceConnection session,
-											 NonAuthUserRepository repo, Queue<Packet> results, Map<String, Object> settings )
+						 NonAuthUserRepository repo, Queue<Packet> results, Map<String, Object> settings )
 			throws XMPPException {
 		if ( session == null ){
 			if ( log.isLoggable( Level.FINE ) ){
@@ -152,7 +163,7 @@ public class JabberIqRoster
 				return;
 			}
 		} else {
-			
+
 			// Packet probably to the user, let's check where it came from
 			if ( session.isUserId( packet.getStanzaTo().getBareJID() ) ){
 				if ( packet.getStanzaTo().getResource() != null ){
@@ -176,8 +187,8 @@ public class JabberIqRoster
 
 				// RFC says: ignore such request
 				log.log( Level.WARNING, "Roster request ''from'' attribute doesn't match "
-																+ "session: {0}, request: {1}", new Object[] { session,
-																																							 packet } );
+						+ "session: {0}, request: {1}", new Object[] { session,
+						packet } );
 				return;
 			}    // end of if (packet.getElemFrom() != null
 			StanzaType type = packet.getType();
@@ -199,7 +210,7 @@ public class JabberIqRoster
 
 					default:
 						results.offer( Authorization.BAD_REQUEST.getResponseMessage( packet,
-																																				 "Request type is incorrect", false ) );
+								"Request type is incorrect", false ) );
 						break;
 				}    // end of switch (type)
 			} else {
@@ -219,7 +230,7 @@ public class JabberIqRoster
 
 						default:
 							results.offer( Authorization.BAD_REQUEST.getResponseMessage( packet,
-																																					 "Request type is incorrect", false ) );
+									"Request type is incorrect", false ) );
 							break;
 					}    // end of switch (type)
 				} else if (xmlns == RosterAbstract.XMLNS_LOAD) {
@@ -247,28 +258,28 @@ public class JabberIqRoster
 			}
 		} catch ( RosterRetrievingException e ) {
 			log.log( Level.WARNING, "Unknown roster retrieving exception: {0} for packet: {1}",
-							 new Object[] { e, packet } );
+					new Object[] { e, packet } );
 			results.offer( Authorization.UNDEFINED_CONDITION.getResponseMessage( packet, e
 					.getMessage(), true ) );
 		} catch ( RepositoryAccessException e ) {
 			log.log( Level.WARNING,
-							 "Problem with roster repository access: {0} for packet: {1}",
-							 new Object[] { e, packet } );
+					"Problem with roster repository access: {0} for packet: {1}",
+					new Object[] { e, packet } );
 			results.offer( packet.okResult( (String) null, 0 ) );
 		} catch ( NotAuthorizedException e ) {
 			log.log( Level.WARNING,
-							 "Received roster request but user session is not authorized yet: {0}", packet );
+					"Received roster request but user session is not authorized yet: {0}", packet );
 			results.offer( Authorization.NOT_AUTHORIZED.getResponseMessage( packet,
-																																			"You must authorize session first.", true ) );
+					"You must authorize session first.", true ) );
 		} catch ( PolicyViolationException e ) {
 			log.log( Level.FINE,
-							 "Roster set request violated items number policy: {0}", packet );
+					"Roster set request violated items number policy: {0}", packet );
 			results.offer( Authorization.POLICY_VIOLATION.getResponseMessage( packet,
-																																			e.getLocalizedMessage(), true ) );
+					e.getLocalizedMessage(), true ) );
 		} catch ( TigaseDBException e ) {
 			log.log( Level.WARNING, "Database problem, please contact admin:", e );
 			results.offer( Authorization.INTERNAL_SERVER_ERROR.getResponseMessage( packet,
-																																						 "Database access problem, please contact administrator.", true ) );
+					"Database access problem, please contact administrator.", true ) );
 		}    // end of try-catch
 	}
 
@@ -336,7 +347,7 @@ public class JabberIqRoster
 	 * @throws NotAuthorizedException
 	 */
 	protected static void dynamicGetRequest( Packet packet, XMPPResourceConnection session,
-																					 Queue<Packet> results, Map<String, Object> settings )
+											 Queue<Packet> results, Map<String, Object> settings )
 			throws NotAuthorizedException {
 		Element request = packet.getElement();
 		Element item = request.findChildStaticStr( IQ_QUERY_ITEM_PATH );
@@ -351,7 +362,7 @@ public class JabberIqRoster
 		} else {
 			try {
 				results.offer( Authorization.BAD_REQUEST.getResponseMessage( packet,
-																																		 "Missing 'item' element, request can not be processed.", true ) );
+						"Missing 'item' element, request can not be processed.", true ) );
 			} catch ( PacketErrorTypeException ex ) {
 				log.log( Level.SEVERE, "Received error packet? not possible.", ex );
 			}
@@ -375,7 +386,7 @@ public class JabberIqRoster
 	 *                 Tigase server configuration.
 	 */
 	protected static void dynamicSetRequest( Packet packet, XMPPResourceConnection session,
-																					 Queue<Packet> results, Map<String, Object> settings ) {
+											 Queue<Packet> results, Map<String, Object> settings ) {
 		Element request = packet.getElement();
 		List<Element> items = request.getChildrenStaticStr( Iq.IQ_QUERY_PATH );
 
@@ -387,7 +398,7 @@ public class JabberIqRoster
 		} else {
 			try {
 				results.offer( Authorization.BAD_REQUEST.getResponseMessage( packet,
-																																		 "Missing 'item' element, request can not be processed.", true ) );
+						"Missing 'item' element, request can not be processed.", true ) );
 			} catch ( PacketErrorTypeException ex ) {
 				log.log( Level.SEVERE, "Received error packet? not possible.", ex );
 			}
@@ -413,9 +424,9 @@ public class JabberIqRoster
 	 * @throws TigaseDBException
 	 */
 	protected void processGetRequest( Packet packet, XMPPResourceConnection session,
-																		Queue<Packet> results, Map<String, Object> settings )
+									  Queue<Packet> results, Map<String, Object> settings )
 			throws NotAuthorizedException, TigaseDBException, RosterRetrievingException,
-						 RepositoryAccessException {
+			RepositoryAccessException {
 
 		// Retrieve all Dynamic roster elements from the roster repository
 		List<Element> its = DynamicRoster.getRosterItems( session, settings );
@@ -470,8 +481,8 @@ public class JabberIqRoster
 
 				while ( items.size() > 0 ) {
 					Element iq = new Element( "iq", new String[] { "type", "id", "to" },
-																		new String[] { "set",
-																									 session.nextStanzaId(), session.getJID().toString() } );
+							new String[] { "set",
+									session.nextStanzaId(), session.getJID().toString() } );
 
 					iq.setXMLNS( CLIENT_XMLNS );
 
@@ -493,9 +504,9 @@ public class JabberIqRoster
 			}
 		} catch ( NoConnectionIdException ex ) {
 			log.log( Level.WARNING,
-							 "Problem with roster request, no connection ID for session: {0}, request: {1}",
-							 new Object[] { session,
-															packet } );
+					"Problem with roster request, no connection ID for session: {0}, request: {1}",
+					new Object[] { session,
+							packet } );
 		}
 	}
 
@@ -516,7 +527,7 @@ public class JabberIqRoster
 	 * @throws XMPPException
 	 */
 	protected void processSetRequest( Packet packet, XMPPResourceConnection session,
-																		Queue<Packet> results, final Map<String, Object> settings )
+									  Queue<Packet> results, final Map<String, Object> settings )
 			throws XMPPException, NotAuthorizedException, TigaseDBException, PolicyViolationException {
 
 		// Element request = packet.getElement();
@@ -537,12 +548,12 @@ public class JabberIqRoster
 						// XMPP.
 						results.offer( Authorization.FEATURE_NOT_IMPLEMENTED.getResponseMessage(
 								packet, "You cannot modify this contact. It is controlled by an "
-												+ "external service.", true ) );
+										+ "external service.", true ) );
 						return;
 					}
 					if ( session.isUserId( buddy.getBareJID() ) ){
 						results.offer( Authorization.NOT_ALLOWED.getResponseMessage( packet,
-													 "User can't add himself to the roster, RFC says NO.", true ) );
+								"User can't add himself to the roster, RFC says NO.", true ) );
 						return;
 					}
 
@@ -612,8 +623,8 @@ public class JabberIqRoster
 
 							for ( Element group : groups ) {
 								gr[cnt++] = ( ( group.getCData() == null )
-															? ""
-															: group.getCData() );
+										? ""
+										: group.getCData() );
 							}    // end of for (ElementData group : groups)
 
 							// end of for (ElementData group : groups)
@@ -639,7 +650,7 @@ public class JabberIqRoster
 
 							if ( autoAuthorize ){
 								PresenceAbstract.sendPresence( StanzaType.subscribe, session.getJID().copyWithoutResource(),
-																			 buddy.copyWithoutResource(), results, null );
+										buddy.copyWithoutResource(), results, null );
 							}
 						}
 
@@ -663,12 +674,12 @@ public class JabberIqRoster
 				results.offer( packet.okResult( (String) null, 0 ) );
 			} catch ( TigaseStringprepException ex ) {
 				results.offer( Authorization.BAD_REQUEST.getResponseMessage( packet,
-																																		 "Buddy JID is incorrct, stringprep failed.", true ) );
+						"Buddy JID is incorrct, stringprep failed.", true ) );
 			}
 		} else {
 			log.log( Level.WARNING, "No items found in roster set request: {0}", packet );
 			results.offer( Authorization.BAD_REQUEST.getResponseMessage( packet,
-																																	 "No items found in the roster set request", true ) );
+					"No items found in the roster set request", true ) );
 		}
 	}
 
@@ -688,7 +699,7 @@ public class JabberIqRoster
 	 */
 	protected void updateHash( XMPPResourceConnection session, Map<String, Object> settings )
 			throws NotAuthorizedException, TigaseDBException, RosterRetrievingException,
-						 RepositoryAccessException {
+			RepositoryAccessException {
 
 		// Retrieve standard roster items.
 		List<Element> ritems = roster_util.getRosterItems( session );
@@ -724,8 +735,8 @@ public class JabberIqRoster
 					}
 				} catch ( TigaseStringprepException ex ) {
 					log.log( Level.INFO,
-									 "JID from dynamic roster is incorrect, stringprep failed for: {0}", element
-							.getAttributeStaticStr( "jid" ) );
+							"JID from dynamic roster is incorrect, stringprep failed for: {0}", element
+									.getAttributeStaticStr( "jid" ) );
 					it.remove();
 				}
 			}
@@ -772,13 +783,13 @@ public class JabberIqRoster
 	 * @throws PacketErrorTypeException
 	 */
 	private void processRemoteRosterManagementRequest( Packet packet,
-																										 XMPPResourceConnection session,
-																										 Queue<Packet> results,
-																										 final Map<String, Object> settings )
+													   XMPPResourceConnection session,
+													   Queue<Packet> results,
+													   final Map<String, Object> settings )
 			throws PacketErrorTypeException {
 		if ( !RemoteRosterManagement.isRemoteAllowed( packet.getStanzaFrom(), session ) ){
 			results.offer( Authorization.NOT_ALLOWED.getResponseMessage( packet,
-																																	 "Not authorized for remote roster management", true ) );
+					"Not authorized for remote roster management", true ) );
 
 			return;
 		}
@@ -813,19 +824,19 @@ public class JabberIqRoster
 
 				default:
 					results.offer( Authorization.BAD_REQUEST.getResponseMessage( packet,
-																																			 "Bad stanza type", true ) );
+							"Bad stanza type", true ) );
 
 					break;
 			}
 		} catch ( PolicyViolationException e ) {
 			log.log( Level.WARNING,
-							 "Roster set request violated items number policy: {0}", packet );
+					"Roster set request violated items number policy: {0}", packet );
 			results.offer( Authorization.POLICY_VIOLATION.getResponseMessage( packet,
-																																			e.getLocalizedMessage(), true ) );
+					e.getLocalizedMessage(), true ) );
 		} catch ( Throwable ex ) {
 			log.log( Level.WARNING, "Reflection execution exception", ex );
 			results.offer( Authorization.INTERNAL_SERVER_ERROR.getResponseMessage( packet,
-																																						 "Internal server error", true ) );
+					"Internal server error", true ) );
 		}
 	}
 }    // JabberIqRoster

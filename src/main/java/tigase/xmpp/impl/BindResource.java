@@ -25,8 +25,8 @@
 package tigase.xmpp.impl;
 
 import tigase.db.NonAuthUserRepository;
-import tigase.db.TigaseDBException;
 import tigase.kernel.beans.Bean;
+import tigase.kernel.beans.config.ConfigField;
 import tigase.server.Iq;
 import tigase.server.Packet;
 import tigase.server.xmppsession.SessionManager;
@@ -53,14 +53,14 @@ import static tigase.xmpp.impl.BindResource.ID;
  */
 @Bean(name = ID, parent = SessionManager.class, active = true)
 public class BindResource
-				extends XMPPProcessor
-				implements XMPPProcessorIfc, XMPPPreprocessorIfc {
+		extends XMPPProcessor
+		implements XMPPProcessorIfc, XMPPPreprocessorIfc {
 	/** Field description */
 	private static final String[]   COMPRESS_PATH   = { "compress" };
 	public static final String      DEF_RESOURCE_PREFIX_PROP_KEY = "def-resource-prefix";
 	private static final String     EL_NAME                      = "bind";
 	private static final String[][] ELEMENTS                     = {
-		Iq.IQ_BIND_PATH
+			Iq.IQ_BIND_PATH
 	};
 	private static final Logger     log = Logger.getLogger(BindResource.class.getName());
 	private static int              resGenerator                 = 0;
@@ -78,32 +78,33 @@ public class BindResource
 
 
 	//~--- fields ---------------------------------------------------------------
+	@ConfigField(desc = "Automatic resource assignment prefix", alias = DEF_RESOURCE_PREFIX_PROP_KEY)
+	private String resourcePrefix = null;
 	private String resourceDefPrefix = RESOURCE_PREFIX_DEF;
 
 	//~--- methods --------------------------------------------------------------
+
+	public BindResource() {
+		setResourcePrefix(RESOURCE_PREFIX_DEF);
+	}
 
 	@Override
 	public String id() {
 		return ID;
 	}
 
-	@Override
-	public void init(Map<String, Object> settings) throws TigaseDBException {
-
-		int hostnameHash = Math.abs( DNSResolverFactory.getInstance().getDefaultHost().hashCode() );
-
-		// Init plugin configuration
-		resourceDefPrefix = hostnameHash + "-" + settings.getOrDefault(DEF_RESOURCE_PREFIX_PROP_KEY, RESOURCE_PREFIX_DEF);
-
+	public void setResourcePrefix(String resourcePrefix) {
+		this.resourcePrefix = resourcePrefix;
+		this.resourceDefPrefix = Math.abs( DNSResolverFactory.getInstance().getDefaultHost().hashCode() ) + "-" + resourceDefPrefix;
 	}
 
 	@Override
 	public boolean preProcess(Packet packet, XMPPResourceConnection session,
-			NonAuthUserRepository repo, Queue<Packet> results, Map<String, Object> settings) {
+							  NonAuthUserRepository repo, Queue<Packet> results, Map<String, Object> settings) {
 		if ((session == null) || session.isServerSession() || !session.isAuthorized() || C2SDeliveryErrorProcessor.isDeliveryError( packet )) {
 			return false;
 		}
-		
+
 		try {
 			if (session.getConnectionId().equals(packet.getPacketFrom())) {
 				// After authentication we require resource binding packet and
@@ -120,20 +121,20 @@ public class BindResource
 					if (from_jid != null) {
 
 						// http://xmpp.org/rfcs/rfc6120.html#stanzas-attributes-from
-							if ( packet.getElemName() == tigase.server.Presence.ELEM_NAME
-								 && StanzaType.getSubsTypes().contains( packet.getType() )
-								 && ( packet.getStanzaFrom() == null
-											|| !from_jid.getBareJID().equals( packet.getStanzaFrom().getBareJID() )
-											|| packet.getStanzaFrom().getResource() != null ) ){
+						if ( packet.getElemName() == tigase.server.Presence.ELEM_NAME
+								&& StanzaType.getSubsTypes().contains( packet.getType() )
+								&& ( packet.getStanzaFrom() == null
+								|| !from_jid.getBareJID().equals( packet.getStanzaFrom().getBareJID() )
+								|| packet.getStanzaFrom().getResource() != null ) ){
 							if ( log.isLoggable( Level.FINEST ) ){
 								log.log( Level.FINEST, "Setting correct from attribute: {0}", from_jid );
 							}
 							packet.initVars( JID.jidInstance( from_jid.getBareJID() ), packet.getStanzaTo() );
 						} else if ( ( packet.getStanzaFrom() == null )
-												|| ( ( packet.getElemName() == tigase.server.Presence.ELEM_NAME
-															 && !StanzaType.getSubsTypes().contains( packet.getType() )
-															 || packet.getElemName() != tigase.server.Presence.ELEM_NAME )
-														 && !from_jid.equals( packet.getStanzaFrom() ) ) ){
+								|| ( ( packet.getElemName() == tigase.server.Presence.ELEM_NAME
+								&& !StanzaType.getSubsTypes().contains( packet.getType() )
+								|| packet.getElemName() != tigase.server.Presence.ELEM_NAME )
+								&& !from_jid.equals( packet.getStanzaFrom() ) ) ){
 							if ( log.isLoggable( Level.FINEST ) ){
 								log.log( Level.FINEST, "Setting correct from attribute: {0}", from_jid );
 							}
@@ -148,21 +149,21 @@ public class BindResource
 					} else {
 						log.log(Level.WARNING,
 								"Session is authenticated but session.getJid() is empty: {0}", packet
-								.toStringSecure());
+										.toStringSecure());
 					}
 				} else {
 
 					// We do not accept anything without resource binding....
 					results.offer(Authorization.NOT_AUTHORIZED.getResponseMessage(packet,
 							"You must bind the resource first: " +
-							"http://www.xmpp.org/rfcs/rfc3920.html#bind", true));
+									"http://www.xmpp.org/rfcs/rfc3920.html#bind", true));
 					if (log.isLoggable(Level.FINER)) {
 						log.log(Level.FINER, "Session details: JID={0}, connectionId={1}, sessionId={2}",
-						        new Object[]{session.getjid(), session.getConnectionId(), session.getSessionId()});
+								new Object[]{session.getjid(), session.getConnectionId(), session.getSessionId()});
 					}
 
 					return true;
-				}			
+				}
 			}
 		} catch (PacketErrorTypeException e) {
 
@@ -170,22 +171,22 @@ public class BindResource
 			if (log.isLoggable(Level.FINEST)) {
 				log.log(Level.FINEST,
 						"Ignoring packet with an error to non-existen user session: {0}", packet
-						.toStringSecure());
+								.toStringSecure());
 			}
 		} catch (Exception e) {
 			log.log(Level.FINEST, "Packet preprocessing exception: ", e);
 
 			return false;
 		}    // end of try-catch	
-		
+
 		return false;
 	}
 
 	@Override
 	public void process(final Packet packet, final XMPPResourceConnection session,
-			final NonAuthUserRepository repo, final Queue<Packet> results, final Map<String,
+						final NonAuthUserRepository repo, final Queue<Packet> results, final Map<String,
 			Object> settings)
-					throws XMPPException {
+			throws XMPPException {
 		if (session == null) {
 			return;
 		}    // end of if (session == null)
@@ -204,44 +205,44 @@ public class BindResource
 
 		try {
 			switch (type) {
-			case set :
-				String resource = request.getChildCDataStaticStr(Iq.IQ_BIND_RESOURCE_PATH);
+				case set :
+					String resource = request.getChildCDataStaticStr(Iq.IQ_BIND_RESOURCE_PATH);
 
-				try {
-					if ((resource == null) || resource.trim().isEmpty()) {
-						resource = resourceDefPrefix + (++resGenerator);
-						session.setResource(resource);
-					} else {
-						try {
-							session.setResource(resource);
-						} catch (TigaseStringprepException ex) {
-
-							// User provided resource is invalid, generating different
-							// server one
-							log.log(Level.INFO,
-									"Incrrect resource provided by the user: {0}, generating a " +
-									"different one by the server.", resource);
+					try {
+						if ((resource == null) || resource.trim().isEmpty()) {
 							resource = resourceDefPrefix + (++resGenerator);
 							session.setResource(resource);
-						}
-					}    // end of if (resource == null) else
-				} catch (TigaseStringprepException ex) {
-					log.log(Level.WARNING,
-							"stringprep problem with the server generated resource: {0}", resource);
-				}
-				packet.initVars(session.getJID(), packet.getStanzaTo());
+						} else {
+							try {
+								session.setResource(resource);
+							} catch (TigaseStringprepException ex) {
 
-				// session.putSessionData(RESOURCE_KEY, "true");
-				results.offer(packet.okResult(new Element("jid", session.getJID().toString()),
-						1));
+								// User provided resource is invalid, generating different
+								// server one
+								log.log(Level.INFO,
+										"Incrrect resource provided by the user: {0}, generating a " +
+												"different one by the server.", resource);
+								resource = resourceDefPrefix + (++resGenerator);
+								session.setResource(resource);
+							}
+						}    // end of if (resource == null) else
+					} catch (TigaseStringprepException ex) {
+						log.log(Level.WARNING,
+								"stringprep problem with the server generated resource: {0}", resource);
+					}
+					packet.initVars(session.getJID(), packet.getStanzaTo());
 
-				break;
+					// session.putSessionData(RESOURCE_KEY, "true");
+					results.offer(packet.okResult(new Element("jid", session.getJID().toString()),
+							1));
 
-			default :
-				results.offer(Authorization.BAD_REQUEST.getResponseMessage(packet,
-						"Bind type is incorrect", false));
+					break;
 
-				break;
+				default :
+					results.offer(Authorization.BAD_REQUEST.getResponseMessage(packet,
+							"Bind type is incorrect", false));
+
+					break;
 			}    // end of switch (type)
 		} catch (NotAuthorizedException e) {
 			results.offer(session.getAuthState().getResponseMessage(packet,

@@ -27,12 +27,10 @@ package tigase.xmpp.impl;
 //~--- non-JDK imports --------------------------------------------------------
 
 import tigase.db.NonAuthUserRepository;
-import tigase.db.TigaseDBException;
-
 import tigase.kernel.beans.Bean;
+import tigase.kernel.beans.config.ConfigField;
 import tigase.server.Iq;
 import tigase.server.Packet;
-
 import tigase.server.xmppsession.SessionManager;
 import tigase.xml.Element;
 import tigase.xmpp.*;
@@ -54,8 +52,8 @@ import java.util.logging.Logger;
  */
 @Bean(name = MobileV2.ID, parent = SessionManager.class, active = false)
 public class MobileV2
-				extends XMPPProcessor
-				implements XMPPProcessorIfc, XMPPPacketFilterIfc, ClientStateIndication.Logic {
+		extends XMPPProcessor
+		implements XMPPProcessorIfc, XMPPPacketFilterIfc, ClientStateIndication.Logic {
 	// default values
 	private static final int    DEF_MAX_QUEUE_SIZE_VAL = 50;
 	protected static final String ID                     = "mobile_v2";
@@ -66,7 +64,7 @@ public class MobileV2
 	private static final String     MOBILE_EL_NAME     = "mobile";
 	private static final String     XMLNS = "http://tigase.org/protocol/mobile#v2";
 	private static final String[][] ELEMENT_PATHS      = {
-		{ Iq.ELEM_NAME, MOBILE_EL_NAME }
+			{ Iq.ELEM_NAME, MOBILE_EL_NAME }
 	};
 	private static final String[]   XMLNSS             = { XMLNS };
 	private static final Element[]  SUP_FEATURES = { new Element(MOBILE_EL_NAME,
@@ -75,6 +73,7 @@ public class MobileV2
 
 	//~--- fields ---------------------------------------------------------------
 
+	@ConfigField(desc = "Max queue size", alias = MAX_QUEUE_SIZE_KEY)
 	private int maxQueueSize = DEF_MAX_QUEUE_SIZE_VAL;
 
 	//~--- methods --------------------------------------------------------------
@@ -85,19 +84,8 @@ public class MobileV2
 	}
 
 	@Override
-	public void init(Map<String, Object> settings) throws TigaseDBException {
-		super.init(settings);
-
-		Integer maxQueueSizeVal = (Integer) settings.get(MAX_QUEUE_SIZE_KEY);
-
-		if (maxQueueSizeVal != null) {
-			maxQueueSize = maxQueueSizeVal;
-		}
-	}
-
-	@Override
 	public void process(final Packet packet, final XMPPResourceConnection session,
-			final NonAuthUserRepository repo, final Queue<Packet> results, final Map<String,
+						final NonAuthUserRepository repo, final Queue<Packet> results, final Map<String,
 			Object> settings) {
 		if (session == null) {
 			return;
@@ -117,27 +105,27 @@ public class MobileV2
 			StanzaType type = packet.getType();
 
 			switch (type) {
-			case set :
-				Element el       = packet.getElement().getChild(MOBILE_EL_NAME);
-				String  valueStr = el.getAttributeStaticStr("enable");
+				case set :
+					Element el       = packet.getElement().getChild(MOBILE_EL_NAME);
+					String  valueStr = el.getAttributeStaticStr("enable");
 
-				// if value is true queuing will be enabled
-				boolean value = (valueStr != null) && ("true".equals(valueStr) || "1".equals(
-						valueStr));
+					// if value is true queuing will be enabled
+					boolean value = (valueStr != null) && ("true".equals(valueStr) || "1".equals(
+							valueStr));
 
-				if (value) {
-					activate(session, results);
-				} else {
-					deactivate(session, results);
-				}
+					if (value) {
+						activate(session, results);
+					} else {
+						deactivate(session, results);
+					}
 
-				results.offer(packet.okResult((Element) null, 0));
+					results.offer(packet.okResult((Element) null, 0));
 
-				break;
+					break;
 
-			default :
-				results.offer(Authorization.BAD_REQUEST.getResponseMessage(packet,
-						"Mobile processing type is incorrect", false));
+				default :
+					results.offer(Authorization.BAD_REQUEST.getResponseMessage(packet,
+							"Mobile processing type is incorrect", false));
 			}
 		} catch (PacketErrorTypeException ex) {
 			Logger.getLogger(MobileV2.class.getName()).log(Level.SEVERE, null, ex);
@@ -193,7 +181,7 @@ public class MobileV2
 	@Override
 	@SuppressWarnings("unchecked")
 	public void filter(Packet _packet, XMPPResourceConnection sessionFromSM,
-			NonAuthUserRepository repo, Queue<Packet> results) {
+					   NonAuthUserRepository repo, Queue<Packet> results) {
 		if ((sessionFromSM == null) ||!sessionFromSM.isAuthorized() || (results == null) ||
 				(results.size() == 0)) {
 			return;
@@ -216,7 +204,7 @@ public class MobileV2
 				if (log.isLoggable(Level.FINEST)) {
 					log.log(Level.FINEST, "no session for destination {0} for packet {1} - missing parent session",
 							new Object[] { res.getPacketTo().toString(),
-										   res.toString() });
+									res.toString() });
 				}
 				continue;
 			}
@@ -227,7 +215,7 @@ public class MobileV2
 				if (log.isLoggable(Level.FINEST)) {
 					log.log(Level.FINEST, "no session for destination {0} for packet {1}",
 							new Object[] { res.getPacketTo().toString(),
-							res.toString() });
+									res.toString() });
 				}
 
 				// if there is no session we should not queue
@@ -277,7 +265,7 @@ public class MobileV2
 	 * @param res
 	 * @param queue
 	 *
-	 * 
+	 *
 	 */
 	public boolean filter(XMPPResourceConnection session, Packet res, Map<JID,
 			Packet> queue) {
@@ -334,7 +322,7 @@ public class MobileV2
 	 * Check if queuing is enabled
 	 *
 	 * @param session
-	 * 
+	 *
 	 */
 	protected boolean isQueueEnabled(XMPPResourceConnection session) {
 		Boolean enabled = (Boolean) session.getSessionData(XMLNS);

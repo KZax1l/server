@@ -26,6 +26,7 @@ package tigase.xmpp.impl;
 import tigase.db.NonAuthUserRepository;
 import tigase.db.TigaseDBException;
 import tigase.kernel.beans.Bean;
+import tigase.kernel.beans.config.ConfigField;
 import tigase.server.Packet;
 import tigase.server.PolicyViolationException;
 import tigase.server.xmppsession.SessionManager;
@@ -51,37 +52,29 @@ import static tigase.xmpp.impl.roster.RosterAbstract.SUB_NONE;
 @Handle(path = { PresenceAbstract.PRESENCE_ELEMENT_NAME }, xmlns = PresenceAbstract.CLIENT_XMLNS)
 @Bean(name = PresenceSubscription.ID, parent = SessionManager.class, active = true)
 public class PresenceSubscription extends PresenceAbstract {
-	
+
 	/**
 	 * key allowing enabling automatic authorisation.
 	 */
 	public static final String AUTO_AUTHORIZE_PROP_KEY = "auto-authorize";
-	
+
 	private static final Logger log = Logger.getLogger(PresenceSubscription.class.getCanonicalName());
 	private static final Set<StanzaType> TYPES = new HashSet<>(Arrays.asList(StanzaType.subscribe, StanzaType.subscribed, StanzaType.unsubscribe, StanzaType.unsubscribed));
-	
+
 	protected static final String ID = "presence-subscription";
-	
+
 	/**
 	 * variable holding setting regarding auto authorisation of items added to
 	 * user roset
 	 */
+	@ConfigField(desc = "Automatically authorize subscription requests", alias = AUTO_AUTHORIZE_PROP_KEY)
 	private static boolean autoAuthorize = false;
 
-	@Override
-	public void init(Map<String, Object> settings) throws TigaseDBException {
-		autoAuthorize = Boolean.parseBoolean((String) settings.get(AUTO_AUTHORIZE_PROP_KEY));
-		if (autoAuthorize) {
-			log.config(
-					"Automatic presence autorization enabled, results in less strict XMPP specs compatibility ");
-		}
-	}
-	
 	@Override
 	public Set<StanzaType> supTypes() {
 		return TYPES;
 	}
-	
+
 	/**
 	 * {@inheritDoc}
 	 *
@@ -113,7 +106,7 @@ public class PresenceSubscription extends PresenceAbstract {
 		// processed in the SessionManager asynchronously
 		synchronized (session) {
 			try {
-				PresenceType pres_type = roster_util.getPresenceType(session, packet);
+				RosterAbstract.PresenceType pres_type = roster_util.getPresenceType(session, packet);
 
 				if (pres_type == null) {
 					log.log(Level.INFO, "Invalid presence found: {0}", packet);
@@ -122,111 +115,111 @@ public class PresenceSubscription extends PresenceAbstract {
 				}    // end of if (type == null)
 				if (log.isLoggable(Level.FINEST)) {
 					log.log(Level.FINEST, "{0} | {1} presence found: {2}",
-									new Object[] { session.getBareJID().toString(), pres_type, packet });
+							new Object[] { session.getBareJID().toString(), pres_type, packet });
 				}
 
 				// All 'in' subscription presences must have a valid from address
 				switch (pres_type) {
-				case in_unsubscribe :
-				case in_subscribe :
-				case in_unsubscribed :
-				case in_subscribed :
-					if (packet.getStanzaFrom() == null) {
-						if (log.isLoggable(Level.FINE)) {
-							log.fine("'in' subscription presence without valid 'from' address, " +
-									"dropping packet: " + packet);
+					case in_unsubscribe :
+					case in_subscribe :
+					case in_unsubscribed :
+					case in_subscribed :
+						if (packet.getStanzaFrom() == null) {
+							if (log.isLoggable(Level.FINE)) {
+								log.fine("'in' subscription presence without valid 'from' address, " +
+										"dropping packet: " + packet);
+							}
+
+							return;
+						}
+						if (session.isUserId(packet.getStanzaFrom().getBareJID())) {
+							if (log.isLoggable(Level.FINE)) {
+								log.log(Level.FINE,
+										"''in'' subscription to myself, not allowed, returning " +
+												"error for packet: " + "{0}", packet);
+							}
+							results.offer(Authorization.NOT_ALLOWED.getResponseMessage(packet,
+									"You can not subscribe to yourself.", false));
+
+							return;
 						}
 
-						return;
-					}
-					if (session.isUserId(packet.getStanzaFrom().getBareJID())) {
-						if (log.isLoggable(Level.FINE)) {
-							log.log(Level.FINE,
-									"''in'' subscription to myself, not allowed, returning " +
-									"error for packet: " + "{0}", packet);
+						// as per http://xmpp.org/rfcs/rfc6121.html#sub
+						// Implementation Note: When a server processes or generates an outbound
+						// presence stanza of type "subscribe", "subscribed", "unsubscribe",
+						// or "unsubscribed", the server MUST stamp the outgoing presence
+						// stanza with the bare JID <localpart@domainpart> of the sending entity,
+						// not the full JID <localpart@domainpart/resourcepart>.
+						//
+						// we enforce this rule also for incomming presence subscirption packets
+						packet.initVars( packet.getStanzaFrom().copyWithoutResource(),
+								session.getJID().copyWithoutResource() );
+
+						break;
+
+					case out_subscribe :
+					case out_unsubscribe :
+					case out_subscribed :
+					case out_unsubscribed :
+
+						// Check wheher the destination address is correct to prevent
+						// broken/corrupted roster entries:
+						if ((packet.getStanzaTo() == null) || packet.getStanzaTo().toString()
+								.isEmpty()) {
+							results.offer(Authorization.JID_MALFORMED.getResponseMessage(packet,
+									"The destination address is incorrect.", false));
+
+							return;
 						}
-						results.offer(Authorization.NOT_ALLOWED.getResponseMessage(packet,
-								"You can not subscribe to yourself.", false));
 
-						return;
-					}
+						// According to RFC 3921 draft bis-3, both source and destination
+						// addresses must be BareJIDs, handled by initVars(...)
+						packet.initVars(session.getJID().copyWithoutResource(), packet.getStanzaTo()
+								.copyWithoutResource());
 
-					// as per http://xmpp.org/rfcs/rfc6121.html#sub
-					// Implementation Note: When a server processes or generates an outbound
-					// presence stanza of type "subscribe", "subscribed", "unsubscribe",
-					// or "unsubscribed", the server MUST stamp the outgoing presence
-					// stanza with the bare JID <localpart@domainpart> of the sending entity,
-					// not the full JID <localpart@domainpart/resourcepart>.
-					//
-					// we enforce this rule also for incomming presence subscirption packets
-					packet.initVars( packet.getStanzaFrom().copyWithoutResource(),
-													 session.getJID().copyWithoutResource() );
+						break;
 
-					break;
-
-				case out_subscribe :
-				case out_unsubscribe :
-				case out_subscribed :
-				case out_unsubscribed :
-
-					// Check wheher the destination address is correct to prevent
-					// broken/corrupted roster entries:
-					if ((packet.getStanzaTo() == null) || packet.getStanzaTo().toString()
-							.isEmpty()) {
-						results.offer(Authorization.JID_MALFORMED.getResponseMessage(packet,
-								"The destination address is incorrect.", false));
-
-						return;
-					}
-
-					// According to RFC 3921 draft bis-3, both source and destination
-					// addresses must be BareJIDs, handled by initVars(...)
-					packet.initVars(session.getJID().copyWithoutResource(), packet.getStanzaTo()
-							.copyWithoutResource());
-
-					break;
-
-				default :
-					break;
+					default :
+						break;
 				}
 				switch (pres_type) {
-				case out_subscribe :
-				case out_unsubscribe :
-					processOutSubscribe(packet, session, results, settings, pres_type);
-					
-					break;
+					case out_subscribe :
+					case out_unsubscribe :
+						processOutSubscribe(packet, session, results, settings, pres_type);
 
-				case out_subscribed :
-				case out_unsubscribed :
-					processOutSubscribed(packet, session, results, settings, pres_type);
+						break;
 
-					break;
+					case out_subscribed :
+					case out_unsubscribed :
+						processOutSubscribed(packet, session, results, settings, pres_type);
 
-				case in_subscribe :
-					processInSubscribe(packet, session, results, settings, pres_type);
+						break;
 
-					break;
+					case in_subscribe :
+						processInSubscribe(packet, session, results, settings, pres_type);
 
-				case in_unsubscribe :
-					processInUnsubscribe(packet, session, results, settings, pres_type);
+						break;
 
-					break;
+					case in_unsubscribe :
+						processInUnsubscribe(packet, session, results, settings, pres_type);
 
-				case in_subscribed :
-					processInSubscribed(packet, session, results, settings, pres_type);
+						break;
 
-					break;
+					case in_subscribed :
+						processInSubscribed(packet, session, results, settings, pres_type);
 
-				case in_unsubscribed :
-					processInUnsubscribed(packet, session, results, settings, pres_type);
+						break;
 
-					break;
+					case in_unsubscribed :
+						processInUnsubscribed(packet, session, results, settings, pres_type);
 
-				default :
-					results.offer(Authorization.BAD_REQUEST.getResponseMessage(packet,
-							"Request type is incorrect", false));
+						break;
 
-					break;
+					default :
+						results.offer(Authorization.BAD_REQUEST.getResponseMessage(packet,
+								"Request type is incorrect", false));
+
+						break;
 				}    // end of switch (type)
 			} catch (NotAuthorizedException e) {
 				log.log(Level.INFO,
@@ -241,7 +234,7 @@ public class PresenceSubscription extends PresenceAbstract {
 		}
 
 	}
-	
+
 	/**
 	 * Method is responsible for processing incoming subscription request (i.e. in
 	 * the receivers session manager).
@@ -267,8 +260,8 @@ public class PresenceSubscription extends PresenceAbstract {
 	 * @throws TigaseDBException
 	 */
 	protected void processInSubscribe(Packet packet, XMPPResourceConnection session,
-			Queue<Packet> results, Map<String, Object> settings, PresenceType pres_type)
-					throws NotAuthorizedException, TigaseDBException, NoConnectionIdException, PolicyViolationException {
+									  Queue<Packet> results, Map<String, Object> settings, RosterAbstract.PresenceType pres_type)
+			throws NotAuthorizedException, TigaseDBException, NoConnectionIdException, PolicyViolationException {
 
 		// If the buddy is already subscribed then auto-reply with subscribed
 		// presence stanza.
@@ -324,8 +317,8 @@ public class PresenceSubscription extends PresenceAbstract {
 	 * @throws TigaseDBException
 	 */
 	protected void processInSubscribed(Packet packet, XMPPResourceConnection session,
-			Queue<Packet> results, Map<String, Object> settings, PresenceType pres_type)
-					throws NotAuthorizedException, TigaseDBException, NoConnectionIdException, PolicyViolationException {
+									   Queue<Packet> results, Map<String, Object> settings, RosterAbstract.PresenceType pres_type)
+			throws NotAuthorizedException, TigaseDBException, NoConnectionIdException, PolicyViolationException {
 		RosterAbstract.SubscriptionType curr_sub = roster_util.getBuddySubscription(session, packet
 				.getStanzaFrom());
 
@@ -383,8 +376,8 @@ public class PresenceSubscription extends PresenceAbstract {
 	 * @throws TigaseDBException
 	 */
 	protected void processInUnsubscribe(Packet packet, XMPPResourceConnection session,
-			Queue<Packet> results, Map<String, Object> settings, PresenceType pres_type)
-					throws NotAuthorizedException, TigaseDBException, NoConnectionIdException, PolicyViolationException {
+										Queue<Packet> results, Map<String, Object> settings, RosterAbstract.PresenceType pres_type)
+			throws NotAuthorizedException, TigaseDBException, NoConnectionIdException, PolicyViolationException {
 		boolean subscr_changed = roster_util.updateBuddySubscription(session, pres_type,
 				packet.getStanzaFrom());
 
@@ -444,8 +437,8 @@ public class PresenceSubscription extends PresenceAbstract {
 	 * @throws TigaseDBException
 	 */
 	protected void processInUnsubscribed(Packet packet, XMPPResourceConnection session,
-			Queue<Packet> results, Map<String, Object> settings, PresenceType pres_type)
-					throws NotAuthorizedException, TigaseDBException, NoConnectionIdException, PolicyViolationException {
+										 Queue<Packet> results, Map<String, Object> settings, RosterAbstract.PresenceType pres_type)
+			throws NotAuthorizedException, TigaseDBException, NoConnectionIdException, PolicyViolationException {
 		RosterAbstract.SubscriptionType curr_sub = roster_util.getBuddySubscription(session, packet
 				.getStanzaFrom());
 
@@ -483,7 +476,7 @@ public class PresenceSubscription extends PresenceAbstract {
 			}
 		}
 	}
-	
+
 	/**
 	 * Method is responsible for processing outgoing subscribe and unsubscribe
 	 * presence (i.e. in the sender session manager).
@@ -515,8 +508,8 @@ public class PresenceSubscription extends PresenceAbstract {
 	 * @throws TigaseDBException
 	 */
 	protected void processOutSubscribe(Packet packet, XMPPResourceConnection session,
-			Queue<Packet> results, Map<String, Object> settings, PresenceType pres_type)
-					throws NotAuthorizedException, TigaseDBException, NoConnectionIdException, PolicyViolationException {
+									   Queue<Packet> results, Map<String, Object> settings, RosterAbstract.PresenceType pres_type)
+			throws NotAuthorizedException, TigaseDBException, NoConnectionIdException, PolicyViolationException {
 
 		// According to RFC-3921 I must forward all these kind presence
 		// requests, it allows to resynchronize
@@ -528,7 +521,7 @@ public class PresenceSubscription extends PresenceAbstract {
 		RosterAbstract.SubscriptionType current_subscription = roster_util.getBuddySubscription(session,
 				packet.getStanzaTo());
 
-		if (pres_type == PresenceType.out_subscribe) {
+		if (pres_type == RosterAbstract.PresenceType.out_subscribe) {
 			if (current_subscription == null) {
 				roster_util.addBuddy(session, packet.getStanzaTo(), null, null, null);
 			}    // end of if (current_subscription == null)
@@ -589,8 +582,8 @@ public class PresenceSubscription extends PresenceAbstract {
 	 * @throws TigaseDBException
 	 */
 	protected void processOutSubscribed(Packet packet, XMPPResourceConnection session,
-			Queue<Packet> results, Map<String, Object> settings, PresenceType pres_type)
-					throws NotAuthorizedException, TigaseDBException, NoConnectionIdException, PolicyViolationException {
+										Queue<Packet> results, Map<String, Object> settings, RosterAbstract.PresenceType pres_type)
+			throws NotAuthorizedException, TigaseDBException, NoConnectionIdException, PolicyViolationException {
 
 		// According to RFC-3921 I must forward all these kind presence
 		// requests, it allows to re-synchronize
@@ -602,7 +595,7 @@ public class PresenceSubscription extends PresenceAbstract {
 		boolean subscr_changed = roster_util.updateBuddySubscription(session, pres_type,
 				buddy);
 
-		if (autoAuthorize && (pres_type == PresenceType.out_subscribed)) {
+		if (autoAuthorize && (pres_type == RosterAbstract.PresenceType.out_subscribed)) {
 			roster_util.setBuddySubscription(session, RosterAbstract.SubscriptionType.both, buddy
 					.copyWithoutResource());
 		}
@@ -610,7 +603,7 @@ public class PresenceSubscription extends PresenceAbstract {
 			roster_util.updateBuddyChange(session, results, roster_util.getBuddyItem(session,
 					buddy));
 			if (initial_presence != null) {
-				if (pres_type == PresenceType.out_subscribed) {
+				if (pres_type == RosterAbstract.PresenceType.out_subscribed) {
 
 					// The contact's server MUST then also send current presence to the user
 					// from each of the contact's available resources.
@@ -629,5 +622,5 @@ public class PresenceSubscription extends PresenceAbstract {
 			}    // end of if (subscr_changed)
 		}
 	}
-	
+
 }

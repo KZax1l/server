@@ -26,6 +26,7 @@ import tigase.db.TigaseDBException;
 import tigase.db.UserNotFoundException;
 
 import tigase.kernel.beans.Bean;
+import tigase.kernel.beans.config.ConfigField;
 import tigase.server.Iq;
 import tigase.server.Message;
 import tigase.server.Packet;
@@ -92,6 +93,7 @@ public class LastActivity extends XMPPProcessorAbstract implements XMPPStopListe
 	private final static EnumSet<SubscriptionType> inTypes = EnumSet.of(SubscriptionType.both, SubscriptionType.from);
 	private final static EnumSet<SubscriptionType> outTypes = EnumSet.of(SubscriptionType.both, SubscriptionType.to);
 
+	@ConfigField(desc = "Protection level", alias = PROTECTION_LEVEL_KEY)
 	private ProtectionLevel protectionLevel = ProtectionLevel.ALL;
 
 	private static long getLastActivity(NonAuthUserRepository repo, BareJID requestedJid) throws UserNotFoundException {
@@ -156,13 +158,6 @@ public class LastActivity extends XMPPProcessorAbstract implements XMPPStopListe
 	}
 
 	@Override
-	public void init(Map<String, Object> settings) throws TigaseDBException {
-		super.init(settings);
-		if (settings.containsKey(PROTECTION_LEVEL_KEY))
-			protectionLevel = ProtectionLevel.valueOf((String) settings.get(PROTECTION_LEVEL_KEY));
-	}
-
-	@Override
 	public void process(Packet packet, XMPPResourceConnection session, NonAuthUserRepository repo, Queue<Packet> results, Map<String, Object> settings)
 			throws XMPPException {
 		if (log.isLoggable(Level.FINEST))
@@ -185,52 +180,52 @@ public class LastActivity extends XMPPProcessorAbstract implements XMPPStopListe
 
 	@Override
 	public void processFromUserPacket(JID connectionId, Packet packet, XMPPResourceConnection session, NonAuthUserRepository repo,
-			Queue<Packet> results, Map<String, Object> settings) throws PacketErrorTypeException {
+									  Queue<Packet> results, Map<String, Object> settings) throws PacketErrorTypeException {
 		if (log.isLoggable(Level.FINEST)) {
 			log.log(Level.FINEST, "Process From user packet: {0}", packet);
 		}
 
 		switch (packet.getType()) {
-		case get:
-			switch (protectionLevel) {
-			case BUDDIES:
-				if (getRosterUtil() == null) {
-					log.warning("Roster factory returned null");
-					results.offer(preventFromINFLoop(Authorization.SERVICE_UNAVAILABLE.getResponseMessage(packet, null, false)));
-					break;
-				}
-				try {
-					RosterElement element = getRosterUtil().getRosterElement(session, packet.getStanzaTo());
-					if (element == null || !outTypes.contains(element.getSubscription())) {
-						results.offer(preventFromINFLoop(Authorization.FORBIDDEN.getResponseMessage(packet, null, false)));
-					} else {
+			case get:
+				switch (protectionLevel) {
+					case BUDDIES:
+						if (getRosterUtil() == null) {
+							log.warning("Roster factory returned null");
+							results.offer(preventFromINFLoop(Authorization.SERVICE_UNAVAILABLE.getResponseMessage(packet, null, false)));
+							break;
+						}
+						try {
+							RosterElement element = getRosterUtil().getRosterElement(session, packet.getStanzaTo());
+							if (element == null || !outTypes.contains(element.getSubscription())) {
+								results.offer(preventFromINFLoop(Authorization.FORBIDDEN.getResponseMessage(packet, null, false)));
+							} else {
+								super.processFromUserPacket(connectionId, packet, session, repo, results, settings);
+							}
+						} catch (NotAuthorizedException | TigaseDBException e) {
+							if (log.isLoggable(Level.FINE)) {
+								log.log(Level.FINE, e.getMessage(), e);
+							}
+							results.offer(preventFromINFLoop(Authorization.SERVICE_UNAVAILABLE.getResponseMessage(packet, null, false)));
+						}
+						break;
+					case ALL:
 						super.processFromUserPacket(connectionId, packet, session, repo, results, settings);
-					}
-				} catch (NotAuthorizedException | TigaseDBException e) {
-					if (log.isLoggable(Level.FINE)) {
-						log.log(Level.FINE, e.getMessage(), e);
-					}
-					results.offer(preventFromINFLoop(Authorization.SERVICE_UNAVAILABLE.getResponseMessage(packet, null, false)));
+						break;
 				}
 				break;
-			case ALL:
+			case error:
+			case result:
 				super.processFromUserPacket(connectionId, packet, session, repo, results, settings);
 				break;
-			}
-			break;
-		case error:
-		case result:
-			super.processFromUserPacket(connectionId, packet, session, repo, results, settings);
-			break;
-		default:
-			results.offer(preventFromINFLoop(Authorization.BAD_REQUEST.getResponseMessage(packet, "Message type is incorrect", false)));
-			break;
+			default:
+				results.offer(preventFromINFLoop(Authorization.BAD_REQUEST.getResponseMessage(packet, "Message type is incorrect", false)));
+				break;
 		}
 	}
 
 	@Override
 	public void processFromUserToServerPacket(JID connectionId, Packet packet, XMPPResourceConnection session, NonAuthUserRepository repo,
-			Queue<Packet> results, Map<String, Object> settings) throws PacketErrorTypeException {
+											  Queue<Packet> results, Map<String, Object> settings) throws PacketErrorTypeException {
 		if (log.isLoggable(Level.FINEST)) {
 			log.log(Level.FINEST, "Processing from user to server packet: {0}", packet);
 		}
@@ -252,28 +247,28 @@ public class LastActivity extends XMPPProcessorAbstract implements XMPPStopListe
 
 		packet.processedBy(ID);
 		switch (packet.getType()) {
-		case get:
-			BareJID requestedJid = packet.getStanzaTo().getBareJID();
-			try {
-				final long last = getLastActivity(repo, requestedJid);
-				final String status = getStatus(repo, requestedJid);
-				handleLastActivityRequest(packet, last, status, results);
-			} catch (UserNotFoundException e) {
-				results.offer(preventFromINFLoop(Authorization.FORBIDDEN.getResponseMessage(packet, null, false)));
-			}
-		case error:
-		case result:
-			super.processNullSessionPacket(packet, repo, results, settings);
-			break;
-		default:
-			results.offer(preventFromINFLoop(Authorization.BAD_REQUEST.getResponseMessage(packet, "Message type is incorrect", false)));
-			break;
+			case get:
+				BareJID requestedJid = packet.getStanzaTo().getBareJID();
+				try {
+					final long last = getLastActivity(repo, requestedJid);
+					final String status = getStatus(repo, requestedJid);
+					handleLastActivityRequest(packet, last, status, results);
+				} catch (UserNotFoundException e) {
+					results.offer(preventFromINFLoop(Authorization.FORBIDDEN.getResponseMessage(packet, null, false)));
+				}
+			case error:
+			case result:
+				super.processNullSessionPacket(packet, repo, results, settings);
+				break;
+			default:
+				results.offer(preventFromINFLoop(Authorization.BAD_REQUEST.getResponseMessage(packet, "Message type is incorrect", false)));
+				break;
 		}
 	}
 
 	@Override
 	public void processServerSessionPacket(Packet packet, XMPPResourceConnection session, NonAuthUserRepository repo, Queue<Packet> results,
-			Map<String, Object> settings) throws PacketErrorTypeException {
+										   Map<String, Object> settings) throws PacketErrorTypeException {
 		if (log.isLoggable(Level.FINEST)) {
 			log.log(Level.FINEST, "Processing server session packet: {0}", packet);
 		}
@@ -283,50 +278,50 @@ public class LastActivity extends XMPPProcessorAbstract implements XMPPStopListe
 
 	@Override
 	public void processToUserPacket(Packet packet, XMPPResourceConnection session, NonAuthUserRepository repo, Queue<Packet> results,
-			Map<String, Object> settings) throws PacketErrorTypeException {
+									Map<String, Object> settings) throws PacketErrorTypeException {
 		if (log.isLoggable(Level.FINEST)) {
 			log.log(Level.FINEST, "Processing to user packet: {0}", packet);
 		}
 
 		packet.processedBy(ID);
 		switch (packet.getType()) {
-		case get:
-			long last = getLastActivity(session, packet);
-			String status = getStatus(session);
+			case get:
+				long last = getLastActivity(session, packet);
+				String status = getStatus(session);
 
-			switch (protectionLevel) {
-			case BUDDIES:
-				if (getRosterUtil() == null) {
-					log.warning("Roster factory returned null");
-					results.offer(preventFromINFLoop(Authorization.SERVICE_UNAVAILABLE.getResponseMessage(packet, null, false)));
-					break;
-				}
-				try {
-					RosterElement element = getRosterUtil().getRosterElement(session, packet.getStanzaFrom());
-					if (element == null || !inTypes.contains(element.getSubscription())) {
-						results.offer(preventFromINFLoop(Authorization.FORBIDDEN.getResponseMessage(packet, null, false)));
-					} else {
+				switch (protectionLevel) {
+					case BUDDIES:
+						if (getRosterUtil() == null) {
+							log.warning("Roster factory returned null");
+							results.offer(preventFromINFLoop(Authorization.SERVICE_UNAVAILABLE.getResponseMessage(packet, null, false)));
+							break;
+						}
+						try {
+							RosterElement element = getRosterUtil().getRosterElement(session, packet.getStanzaFrom());
+							if (element == null || !inTypes.contains(element.getSubscription())) {
+								results.offer(preventFromINFLoop(Authorization.FORBIDDEN.getResponseMessage(packet, null, false)));
+							} else {
+								handleLastActivityRequest(packet, last, status, results);
+							}
+						} catch (NotAuthorizedException | TigaseDBException e) {
+							if (log.isLoggable(Level.FINE)) {
+								log.log(Level.FINE, e.getMessage(), e);
+							}
+							results.offer(preventFromINFLoop(Authorization.SERVICE_UNAVAILABLE.getResponseMessage(packet, null, false)));
+						}
+						break;
+					case ALL:
 						handleLastActivityRequest(packet, last, status, results);
-					}
-				} catch (NotAuthorizedException | TigaseDBException e) {
-					if (log.isLoggable(Level.FINE)) {
-						log.log(Level.FINE, e.getMessage(), e);
-					}
-					results.offer(preventFromINFLoop(Authorization.SERVICE_UNAVAILABLE.getResponseMessage(packet, null, false)));
+						break;
 				}
 				break;
-			case ALL:
-				handleLastActivityRequest(packet, last, status, results);
+			case error:
+			case result:
+				super.processToUserPacket(packet, session, repo, results, settings);
 				break;
-			}
-			break;
-		case error:
-		case result:
-			super.processToUserPacket(packet, session, repo, results, settings);
-			break;
-		default:
-			results.offer(preventFromINFLoop(Authorization.BAD_REQUEST.getResponseMessage(packet, "Message type is incorrect", false)));
-			break;
+			default:
+				results.offer(preventFromINFLoop(Authorization.BAD_REQUEST.getResponseMessage(packet, "Message type is incorrect", false)));
+				break;
 		}
 	}
 

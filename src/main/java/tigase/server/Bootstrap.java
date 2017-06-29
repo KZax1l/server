@@ -36,9 +36,12 @@ import tigase.kernel.beans.selector.ServerBeanSelector;
 import tigase.kernel.core.DependencyGrapher;
 import tigase.kernel.core.Kernel;
 import tigase.osgi.ModulesManagerImpl;
+import tigase.util.ClassUtilBean;
+import tigase.xmpp.XMPPImplIfc;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -51,7 +54,7 @@ import static tigase.conf.ConfiguratorAbstract.LOGGING_KEY;
 
 /**
  * Bootstrap class is responsible for initialization of Kernel to start Tigase XMPP Server.
- * <p>
+ *
  * Created by andrzej on 05.03.2016.
  */
 public class Bootstrap implements Lifecycle {
@@ -70,7 +73,7 @@ public class Bootstrap implements Lifecycle {
         configureLogManager();
     }
 
-    public void setProperties(Map<String, Object> props) {
+    public void setProperties(Map<String,Object> props) {
         this.config.setProperties(props);
     }
 
@@ -97,9 +100,21 @@ public class Bootstrap implements Lifecycle {
             } else {
                 kernel.registerBean("classUtilBean").asInstance(Class.forName("tigase.util.ClassUtilBean").newInstance()).exportable().exec();
             }
-        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+        } catch (ClassNotFoundException|InstantiationException|IllegalAccessException e) {
             throw new RuntimeException(e);
         }
+
+        ClassUtilBean.getInstance().getAllClasses().stream().filter(cls -> XMPPImplIfc.class.isAssignableFrom(cls)).filter(cls -> {
+            try {
+                Method m = cls.getDeclaredMethod("init", Map.class);
+                if (m.getAnnotation(Deprecated.class) == null) {
+                    return true;
+                }
+            } catch (NoSuchMethodException|SecurityException ex) {
+                // ignoring...
+            }
+            return false;
+        }).map(cls -> "deprecated init() method in " + cls.getCanonicalName()).forEach(System.out::println);
 
         // register default types converter and properties bean configurator
         kernel.registerBean(DefaultTypesConverter.class).exportable().exec();
@@ -214,7 +229,7 @@ public class Bootstrap implements Lifecycle {
 
     private Map<String, Object> prepareLogManagerConfiguration(Map<String, Object> params) {
         Map<String, Object> defaults = new HashMap<>();
-        String levelStr = ".level";
+        String              levelStr = ".level";
 
         if ((Boolean) params.get(GEN_TEST)) {
             defaults.put(LOGGING_KEY + levelStr, "WARNING");
@@ -253,23 +268,23 @@ public class Bootstrap implements Lifecycle {
         return defaults;
     }
 
-    private void setupLogManager(Map<String, Object> properties) {
+    private void setupLogManager( Map<String, Object> properties ) {
         Set<Map.Entry<String, Object>> entries = properties.entrySet();
-        StringBuilder buff = new StringBuilder(200);
+        StringBuilder buff = new StringBuilder( 200 );
 
-        for (Map.Entry<String, Object> entry : entries) {
-            if (entry.getKey().startsWith(LOGGING_KEY)) {
-                String key = entry.getKey().substring(LOGGING_KEY.length());
-                loggingSetup.put(key, entry.getValue().toString());
+        for ( Map.Entry<String, Object> entry : entries ) {
+            if ( entry.getKey().startsWith( LOGGING_KEY ) ){
+                String key = entry.getKey().substring( LOGGING_KEY.length() );
+                loggingSetup.put( key, entry.getValue().toString() );
             }
         }
 
-        for (String key : loggingSetup.keySet()) {
-            String entry = loggingSetup.get(key);
-            buff.append(key).append("=").append(entry).append("\n");
-            if (key.equals("java.util.logging.FileHandler.pattern")) {
-                File log_path = new File(entry).getParentFile();
-                if (!log_path.exists()) {
+        for ( String key : loggingSetup.keySet() ) {
+            String entry = loggingSetup.get( key );
+            buff.append( key ).append( "=" ).append( entry ).append( "\n" );
+            if ( key.equals( "java.util.logging.FileHandler.pattern" ) ){
+                File log_path = new File( entry ).getParentFile();
+                if ( !log_path.exists() ){
                     log_path.mkdirs();
                 }
             }    // end of if (key.equals())

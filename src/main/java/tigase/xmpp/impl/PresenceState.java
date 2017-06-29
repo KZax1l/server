@@ -26,13 +26,13 @@ package tigase.xmpp.impl;
 import tigase.db.NonAuthUserRepository;
 import tigase.db.TigaseDBException;
 import tigase.kernel.beans.Bean;
-import tigase.osgi.ModulesManagerImpl;
+import tigase.kernel.beans.Inject;
+import tigase.kernel.beans.config.ConfigField;
 import tigase.server.Iq;
 import tigase.server.Packet;
 import tigase.server.Priority;
 import tigase.server.xmppsession.SessionManager;
 import tigase.stats.StatisticsList;
-import tigase.util.TigaseStringprepException;
 import tigase.xml.Element;
 import tigase.xmpp.*;
 import tigase.xmpp.impl.annotation.Handle;
@@ -55,8 +55,8 @@ import static tigase.xmpp.impl.roster.RosterAbstract.TO_SUBSCRIBED;
  */
 @Id(PresenceState.ID)
 @Handles({
-	@Handle(path = { PresenceAbstract.PRESENCE_ELEMENT_NAME }, xmlns = PresenceAbstract.CLIENT_XMLNS),
-	@Handle(path = { Iq.ELEM_NAME, Iq.QUERY_NAME }, xmlns = RosterAbstract.XMLNS_LOAD)
+		@Handle(path = { PresenceAbstract.PRESENCE_ELEMENT_NAME }, xmlns = PresenceAbstract.CLIENT_XMLNS),
+		@Handle(path = { Iq.ELEM_NAME, Iq.QUERY_NAME }, xmlns = RosterAbstract.XMLNS_LOAD)
 })
 @Bean(name = PresenceState.ID, parent = SessionManager.class, active = true)
 public class PresenceState extends PresenceAbstract implements XMPPStopListenerIfc {
@@ -68,8 +68,8 @@ public class PresenceState extends PresenceAbstract implements XMPPStopListenerI
 	 */
 	public static final String DIRECT_PRESENCE = "direct-presences";
 
-	public static final String DISABLE_ROSTER_LAZY_LOADING_KEY = "disable-roster-lazy-loading";
-	
+	public static final String ENABLE_ROSTER_LAZY_LOADING_KEY = "enable-roster-lazy-loading";
+
 	public static final String EXTENDED_PRESENCE_PROCESSORS_KEY = "extended-presence-processors";
 
 	/** Field description */
@@ -81,82 +81,32 @@ public class PresenceState extends PresenceAbstract implements XMPPStopListenerI
 	/** Field description */
 	public static final String OFFLINE_ROSTER_LAST_SEEN_PROP_KEY =
 			"offline-roster-last-seen";
-	
+
 	/**
 	 * key allowing setting global forwarding JID address.
 	 */
 	public static final String PRESENCE_GLOBAL_FORWARD = "presence-global-forward";
-	
+
 	private static final Logger log = Logger.getLogger(PresenceState.class.getCanonicalName());
-	
+
 	protected static final String   ID = "presence-state";
 	protected static int            HIGH_PRIORITY_PRESENCES_NO = 10;
-	private static final long       MAX_DIRECT_PRESENCES_NO = 1000;	
+	private static final long       MAX_DIRECT_PRESENCES_NO = 1000;
 	private static final String[]   PRESENCE_C_PATH         = { PRESENCE_ELEMENT_NAME, "c" };
 	private static final Set<StanzaType> TYPES = new HashSet<>(Arrays.asList(StanzaType.available, StanzaType.unavailable, StanzaType.probe, StanzaType.error, StanzaType.result, null));
-		
-	
+
+	@ConfigField(desc = "Send last seen infomations for matching clients", alias = OFFLINE_ROSTER_LAST_SEEN_PROP_KEY)
 	private String[]         offlineRosterLastSeen = null;
+	@ConfigField(desc = "Forward all presences to following JID", alias = PRESENCE_GLOBAL_FORWARD)
 	private JID              presenceGLobalForward = null;
-	private static boolean	 rosterLazyLoading       = true;
+	@ConfigField(desc = "Enable roster lazy loading", alias = ENABLE_ROSTER_LAZY_LOADING_KEY)
+	private boolean	 rosterLazyLoading       = true;
 	private long             usersStatusChanges    = 0;
-	private static final List<ExtendedPresenceProcessorIfc> extendedPresenceProcessors = new ArrayList<>();
+	@Inject(nullAllowed = true)
+	private List<ExtendedPresenceProcessorIfc> extendedPresenceProcessors = new ArrayList<>();
 
 	// ~--- methods --------------------------------------------------------------
-	
-	@Override
-	public void init(Map<String, Object> settings) throws TigaseDBException {
-		// configuring static settings in common methods
-		PresenceAbstract.initSettings(settings);
-		
-		String tmp = null;
 
-		tmp = (String) settings.get( OFFLINE_ROSTER_LAST_SEEN_PROP_KEY );
-		if ( tmp != null ){
-			if ( tmp.contains( "off" ) ){
-				offlineRosterLastSeen = null;
-			} else {
-				offlineRosterLastSeen = tmp.split( "," );
-				log.log( Level.CONFIG, "Loaded roster offline last seen config: {0}", tmp );
-			}
-//		} else {
-//			offlineRosterLastSeen = new String[] {"*"};
-//			log.config("No configuration found for Loaded roster offline last seen. - enabling for All clients");
-		}
-		
-		tmp = (String) settings.get(PRESENCE_GLOBAL_FORWARD);
-		if (tmp != null) {
-			try {
-				presenceGLobalForward = JID.jidInstance(tmp);
-			} catch (TigaseStringprepException ex) {
-				presenceGLobalForward = null;
-				log.log(Level.WARNING, "Presence global forward misconfiguration, cannot parse JID {0}", tmp);
-			}
-		}
-		
-		tmp = (String) settings.get(DISABLE_ROSTER_LAZY_LOADING_KEY);
-		rosterLazyLoading = (tmp == null || !Boolean.parseBoolean(tmp));
-
-		tmp = (String) settings.get(EXTENDED_PRESENCE_PROCESSORS_KEY);
-
-		String[] extPresenceProcessorsClasses = tmp != null ? tmp.split( ",") : null ;
-
-		if ( extPresenceProcessorsClasses != null ){
-			for ( String clazz : extPresenceProcessorsClasses ) {
-				try {
-					ExtendedPresenceProcessorIfc processor = (ExtendedPresenceProcessorIfc) ModulesManagerImpl.getInstance().forName( clazz ).newInstance();
-
-					extendedPresenceProcessors.add( processor );
-					log.log(Level.CONFIG, "Loadeded ExtendedPresenceProcessor: {0}", processor.getClass());
-
-				} catch ( ClassNotFoundException | InstantiationException | IllegalAccessException ex ) {
-					Logger.getLogger(PresenceAbstract.class.getName() ).log( Level.SEVERE, null, ex );
-				}
-			}
-		}
-		
-	}
-	
 	@Override
 	public Set<StanzaType> supTypes() {
 		return TYPES;
@@ -187,9 +137,9 @@ public class PresenceState extends PresenceAbstract implements XMPPStopListenerI
 			}
 
 			return;
-		}		
+		}
 
-	if (packet.getElemName() == Iq.ELEM_NAME) {
+		if (packet.getElemName() == Iq.ELEM_NAME) {
 			// here we process results of roster loading process requests
 			boolean finishProcessing = true;
 			switch (packet.getType()) {
@@ -204,7 +154,7 @@ public class PresenceState extends PresenceAbstract implements XMPPStopListenerI
 							pres.setPacketFrom(packet.getPacketFrom());
 							pres.setPacketTo(packet.getPacketTo());
 							try {
-								processOutInitial(pres, session, results, settings, PresenceType.out_initial);
+								processOutInitial(pres, session, results, settings, RosterAbstract.PresenceType.out_initial);
 							} catch (NotAuthorizedException e) {
 								log.log(Level.INFO,
 										"Can not access user Roster, user session is not authorized yet: {0}",
@@ -223,11 +173,11 @@ public class PresenceState extends PresenceAbstract implements XMPPStopListenerI
 			if (finishProcessing)
 				return;
 		}
-		
-		
+
+
 		synchronized (session) {
 			try {
-				PresenceType pres_type = roster_util.getPresenceType(session, packet);
+				RosterAbstract.PresenceType pres_type = roster_util.getPresenceType(session, packet);
 
 				if (pres_type == null) {
 					log.log(Level.INFO, "Invalid presence found: {0}", packet);
@@ -236,43 +186,43 @@ public class PresenceState extends PresenceAbstract implements XMPPStopListenerI
 				}    // end of if (type == null)
 				if (log.isLoggable(Level.FINEST)) {
 					log.log(Level.FINEST, "{0} | {1} presence found: {2}",
-									new Object[] { session.getBareJID().toString(), pres_type, packet });
+							new Object[] { session.getBareJID().toString(), pres_type, packet });
 				}
-				
+
 				switch (pres_type) {
-				case out_initial :
-					processOutInitial(packet, session, results, settings, pres_type);
+					case out_initial :
+						processOutInitial(packet, session, results, settings, pres_type);
 
-					break;
-				case in_initial :
-					processInInitial(packet, session, results, settings, pres_type);
+						break;
+					case in_initial :
+						processInInitial(packet, session, results, settings, pres_type);
 
-					break;
-				case in_probe :
-					if (session.getPresence() == null) {
+						break;
+					case in_probe :
+						if (session.getPresence() == null) {
 
-						// If the user has not yet sent initial presence then ignore the
-						// probe.
-						return;
-					}
-					processInProbe(packet, session, results, settings, pres_type);
+							// If the user has not yet sent initial presence then ignore the
+							// probe.
+							return;
+						}
+						processInProbe(packet, session, results, settings, pres_type);
 
-					break;
+						break;
 
-				case out_probe :
-					forwardPresence(results, packet, session.getJID());
-					break;
-					
-				case error :
-					processError(packet, session, results, settings, pres_type);
+					case out_probe :
+						forwardPresence(results, packet, session.getJID());
+						break;
 
-					break;
+					case error :
+						processError(packet, session, results, settings, pres_type);
 
-				default :
-					results.offer(Authorization.BAD_REQUEST.getResponseMessage(packet,
-							"Request type is incorrect", false));
+						break;
 
-					break;
+					default :
+						results.offer(Authorization.BAD_REQUEST.getResponseMessage(packet,
+								"Request type is incorrect", false));
+
+						break;
 				}    // end of switch (type)
 			} catch (NotAuthorizedException e) {
 				log.log(Level.INFO,
@@ -321,8 +271,8 @@ public class PresenceState extends PresenceAbstract implements XMPPStopListenerI
 				log.log(Level.WARNING, "Error accessing database for offline message: ", e);
 			}    // end of try-catch
 		}
-	}	
-	
+	}
+
 	//~--- get methods ----------------------------------------------------------
 
 	@Override
@@ -330,7 +280,7 @@ public class PresenceState extends PresenceAbstract implements XMPPStopListenerI
 		super.getStatistics(list);
 		list.add(id(), USERS_STATUS_CHANGES, usersStatusChanges, Level.INFO);
 	}
-	
+
 	/**
 	 * <code>sendPresenceBroadcast</code> method broadcasts given presence to all
 	 * buddies from roster and to all users to which direct presence was sent.
@@ -347,8 +297,8 @@ public class PresenceState extends PresenceAbstract implements XMPPStopListenerI
 	 * @throws TigaseDBException
 	 */
 	public static void broadcastOffline(XMPPResourceConnection session,
-			Queue<Packet> results, Map<String, Object> settings, RosterAbstract roster_util)
-					throws NotAuthorizedException, TigaseDBException {
+										Queue<Packet> results, Map<String, Object> settings, RosterAbstract roster_util)
+			throws NotAuthorizedException, TigaseDBException {
 
 		// Preventing sending offline notifications more than once
 		if (session.getSessionData(OFFLINE_BUD_SENT) != null) {
@@ -389,7 +339,7 @@ public class PresenceState extends PresenceAbstract implements XMPPStopListenerI
 			log.log(Level.FINEST, "Added direct presence jid: {0}", jid);
 		}
 	}
-	
+
 	/**
 	 * Remove JID from collection of JIDs to which direct presence was sent.
 	 *
@@ -407,8 +357,8 @@ public class PresenceState extends PresenceAbstract implements XMPPStopListenerI
 		if (log.isLoggable(Level.FINEST)) {
 			log.log(Level.FINEST, "Added direct presence jid: {0}", jid);
 		}
-	}	
-	
+	}
+
 	/**
 	 * {@code broadcastDirectPresences} broadcast a direct Presence from provided
 	 * {@code pres} {@link Element} object to the collection of JIDs stored in
@@ -428,8 +378,8 @@ public class PresenceState extends PresenceAbstract implements XMPPStopListenerI
 	 */
 	@SuppressWarnings({ "unchecked" })
 	protected static void broadcastDirectPresences(StanzaType t,
-			XMPPResourceConnection session, Queue<Packet> results, Element pres)
-					throws NotAuthorizedException, TigaseDBException {
+												   XMPPResourceConnection session, Queue<Packet> results, Element pres)
+			throws NotAuthorizedException, TigaseDBException {
 		Set<JID> direct_presences = (Set<JID>) session.getSessionData(DIRECT_PRESENCE);
 
 		if ((direct_presences != null) && (t != null) && (t == StanzaType.unavailable)) {
@@ -444,8 +394,8 @@ public class PresenceState extends PresenceAbstract implements XMPPStopListenerI
 			}    // end of for (String buddy: buddies)
 		}      // end of if (direct_presence != null)
 	}
-	
-	public static void rebroadcastPresence(XMPPResourceConnection session, Queue<Packet> results) throws NotAuthorizedException, TigaseDBException {
+
+	public void rebroadcastPresence(XMPPResourceConnection session, Queue<Packet> results) throws NotAuthorizedException, TigaseDBException {
 		if (session.getPresence() == null ) {
 			// user has not sent initial presence yet, ignore
 			return;
@@ -464,14 +414,14 @@ public class PresenceState extends PresenceAbstract implements XMPPStopListenerI
 				presence.addChild( extendContent );
 			}
 		}
-		
+
 		sendPresenceBroadcast(StanzaType.available, session, FROM_SUBSCRIBED, results, presence, null, getRosterUtil());
 
 		updateUserResources(presence, session, results, false);
 
 //		sendPresenceBroadcast( StanzaType.get, session, SUB_TO, results, presence, null, null );
-	}	
-	
+	}
+
 	/**
 	 * Process presence stanza of type Error. Allows errors sent from server to
 	 * user and ignore presence errors sent from the user.
@@ -491,8 +441,8 @@ public class PresenceState extends PresenceAbstract implements XMPPStopListenerI
 	 * @throws TigaseDBException
 	 */
 	protected void processError(Packet packet, XMPPResourceConnection session,
-			Queue<Packet> results, Map<String, Object> settings, PresenceType presenceType)
-					throws NotAuthorizedException, TigaseDBException, NoConnectionIdException {
+								Queue<Packet> results, Map<String, Object> settings, RosterAbstract.PresenceType presenceType)
+			throws NotAuthorizedException, TigaseDBException, NoConnectionIdException {
 
 		// Strategy change.
 		// Now we allow all error presences sent to the user, but we just ignore
@@ -532,8 +482,8 @@ public class PresenceState extends PresenceAbstract implements XMPPStopListenerI
 	 * @throws TigaseDBException
 	 */
 	protected void processInInitial(Packet packet, XMPPResourceConnection session,
-			Queue<Packet> results, Map<String, Object> settings, PresenceType presenceType)
-					throws NoConnectionIdException, NotAuthorizedException, TigaseDBException {
+									Queue<Packet> results, Map<String, Object> settings, RosterAbstract.PresenceType presenceType)
+			throws NoConnectionIdException, NotAuthorizedException, TigaseDBException {
 		if (packet.getStanzaFrom() == null) {
 
 			// That really happened already. It looks like a bug in tigase
@@ -555,7 +505,7 @@ public class PresenceState extends PresenceAbstract implements XMPPStopListenerI
 				if (log.isLoggable(Level.FINEST)) {
 					log.log(Level.FINEST, "Received direct presence from: {0} to: {1}",
 							new Object[] { packet.getStanzaFrom(),
-							packet.getStanzaTo() });
+									packet.getStanzaTo() });
 				}
 
 				// Send a direct presence to correct resource, otherwise ignore
@@ -569,7 +519,7 @@ public class PresenceState extends PresenceAbstract implements XMPPStopListenerI
 					log.log(Level.FINEST,
 							"Ignoring direct presence from: {0} to: {1}, resource gone.",
 							new Object[] { packet.getStanzaFrom(),
-							packet.getStanzaTo() });
+									packet.getStanzaTo() });
 				}
 			}
 
@@ -604,9 +554,9 @@ public class PresenceState extends PresenceAbstract implements XMPPStopListenerI
 			}
 			if ( log.isLoggable( Level.FINEST ) ){
 				log.log( Level.FINEST,
-								 "Received initial presence, setting buddy: {0} online status to: {1}",
-								 new Object[] { packet.getStanzaFrom(),
-																online } );
+						"Received initial presence, setting buddy: {0} online status to: {1}",
+						new Object[] { packet.getStanzaFrom(),
+								online } );
 			}
 		}
 		updatePresenceChange(packet, session, results);
@@ -634,9 +584,9 @@ public class PresenceState extends PresenceAbstract implements XMPPStopListenerI
 	 * @throws TigaseDBException
 	 */
 	protected void processInProbe(Packet packet, XMPPResourceConnection session,
-			Queue<Packet> results, Map<String, Object> settings, PresenceType presenceType)
-					throws NotAuthorizedException, TigaseDBException, PacketErrorTypeException {
-		SubscriptionType buddy_subscr = null;
+								  Queue<Packet> results, Map<String, Object> settings, RosterAbstract.PresenceType presenceType)
+			throws NotAuthorizedException, TigaseDBException, PacketErrorTypeException {
+		RosterAbstract.SubscriptionType buddy_subscr = null;
 		Element          dynItem;
 
 		try {
@@ -645,12 +595,12 @@ public class PresenceState extends PresenceAbstract implements XMPPStopListenerI
 			dynItem = null;
 		}
 		if (dynItem != null) {
-			buddy_subscr = SubscriptionType.both;
+			buddy_subscr = RosterAbstract.SubscriptionType.both;
 		} else {
 			buddy_subscr = roster_util.getBuddySubscription(session, packet.getStanzaFrom());
 		}
 		if (buddy_subscr == null) {
-			buddy_subscr = SubscriptionType.none;
+			buddy_subscr = RosterAbstract.SubscriptionType.none;
 		}    // end of if (buddy_subscr == null)
 		if (roster_util.isSubscribedFrom(buddy_subscr)) {
 			if (log.isLoggable(Level.FINEST)) {
@@ -756,8 +706,8 @@ public class PresenceState extends PresenceAbstract implements XMPPStopListenerI
 	 * @throws TigaseDBException
 	 */
 	protected void processOutInitial(Packet packet, XMPPResourceConnection session,
-			Queue<Packet> results, Map<String, Object> settings, PresenceType type)
-					throws NotAuthorizedException, TigaseDBException {
+									 Queue<Packet> results, Map<String, Object> settings, RosterAbstract.PresenceType type)
+			throws NotAuthorizedException, TigaseDBException {
 
 		// Is it a direct presence to some entity on the network?
 		if (packet.getStanzaTo() != null) {
@@ -818,7 +768,7 @@ public class PresenceState extends PresenceAbstract implements XMPPStopListenerI
 
 						// Broadcast initial presence to 'from' or 'both' contacts
 						sendPresenceBroadcast(StanzaType.available, session, FROM_SUBSCRIBED,
-															 results, presenceEl, settings, roster_util);
+								results, presenceEl, settings, roster_util);
 					}
 
 					// Broadcast initial presence to other available user resources
@@ -848,7 +798,7 @@ public class PresenceState extends PresenceAbstract implements XMPPStopListenerI
 			}
 		}
 	}
-	
+
 	/**
 	 * Method sends back presence to contact while it becomes online (i.e. during
 	 * processing of incoming initial presence of the contact/buddy)
@@ -866,8 +816,8 @@ public class PresenceState extends PresenceAbstract implements XMPPStopListenerI
 	 * @throws TigaseDBException
 	 */
 	protected void buddyOnline(XMPPResourceConnection session, JID buddy,
-			Queue<Packet> results, boolean online)
-					throws NotAuthorizedException, TigaseDBException {
+							   Queue<Packet> results, boolean online)
+			throws NotAuthorizedException, TigaseDBException {
 		roster_util.setOnline(session, buddy, online);
 		if (online && skipOffline &&!roster_util.presenceSent(session, buddy) && roster_util
 				.isSubscribedFrom(session, buddy)) {
@@ -905,9 +855,9 @@ public class PresenceState extends PresenceAbstract implements XMPPStopListenerI
 	 * @throws TigaseDBException
 	 */
 	public static void sendPresenceBroadcast(StanzaType t, XMPPResourceConnection session,
-			EnumSet<SubscriptionType> subscrs, Queue<Packet> results, Element pres, Map<String,
+											 EnumSet<RosterAbstract.SubscriptionType> subscrs, Queue<Packet> results, Element pres, Map<String,
 			Object> settings, RosterAbstract roster_util)
-					throws NotAuthorizedException, TigaseDBException {
+			throws NotAuthorizedException, TigaseDBException {
 
 		// Direct presence if any should be sent first
 		broadcastDirectPresences(t, session, results, pres);
@@ -960,7 +910,7 @@ public class PresenceState extends PresenceAbstract implements XMPPStopListenerI
 			}
 		}
 	}
-	
+
 	/**
 	 * Method sends server generated presence unavailable for all buddies from the
 	 * roster with a custom status message.
@@ -976,8 +926,8 @@ public class PresenceState extends PresenceAbstract implements XMPPStopListenerI
 	 */
 	@SuppressWarnings("empty-statement")
 	protected void sendRosterOfflinePresence(XMPPResourceConnection session,
-			Queue<Packet> results)
-					throws NotAuthorizedException, TigaseDBException, NoConnectionIdException {
+											 Queue<Packet> results)
+			throws NotAuthorizedException, TigaseDBException, NoConnectionIdException {
 		if (offlineRosterLastSeen == null) {
 			log.finest("No clients specified in config, skipping...");
 
@@ -1030,8 +980,8 @@ public class PresenceState extends PresenceAbstract implements XMPPStopListenerI
 
 				if ( children != null && !children.isEmpty() ){
 					Packet pack = sendPresence( StanzaType.unavailable, buddy, session.getJID(),
-																			results, null );
-					
+							results, null );
+
 					if ( pres_cnt == HIGH_PRIORITY_PRESENCES_NO ){
 						++pres_cnt;
 						pack_priority = Priority.LOWEST;
@@ -1045,7 +995,7 @@ public class PresenceState extends PresenceAbstract implements XMPPStopListenerI
 			}    // end of for (String buddy: buddies)
 		}
 	}
-	
+
 	/**
 	 * <code>updateOfflineChange</code> method broadcast off-line presence to all
 	 * other user active resources.
@@ -1058,8 +1008,8 @@ public class PresenceState extends PresenceAbstract implements XMPPStopListenerI
 	 * @exception NotAuthorizedException if an error occurs
 	 */
 	protected static void updateOfflineChange(XMPPResourceConnection session,
-			Queue<Packet> results)
-					throws NotAuthorizedException {
+											  Queue<Packet> results)
+			throws NotAuthorizedException {
 
 		// Preventing sending offline notifications more than once
 		if (session.getSessionData(OFFLINE_RES_SENT) != null) {
@@ -1083,7 +1033,7 @@ public class PresenceState extends PresenceAbstract implements XMPPStopListenerI
 					// accroding to RFC1621, 4.5.2.  Server Processing of Outbound Unavailable Presence
 					// this presece packet should be addressed to fullJID
 					Packet pack_update = Packet.packetInstance( pres_update, session.getJID(),
-																											conn.getJID() );
+							conn.getJID() );
 
 					pack_update.setPacketTo(conn.getConnectionId());
 					results.offer(pack_update);
@@ -1114,8 +1064,8 @@ public class PresenceState extends PresenceAbstract implements XMPPStopListenerI
 	 * @throws TigaseDBException
 	 */
 	public void resendPendingInRequests(XMPPResourceConnection session,
-			Queue<Packet> results)
-					throws NotAuthorizedException, TigaseDBException {
+										Queue<Packet> results)
+			throws NotAuthorizedException, TigaseDBException {
 		JID[] buddies = roster_util.getBuddies(session, RosterAbstract.PENDING_IN);
 
 		if (buddies != null) {
@@ -1131,16 +1081,16 @@ public class PresenceState extends PresenceAbstract implements XMPPStopListenerI
 			}
 		}
 	}
-	
+
 	private boolean isAllowedForPresenceProbe(XMPPResourceConnection session, JID jid) {
 		if (jid == null)
 			return false;
-		
+
 		return session.getDomain().isTrustedJID(jid);
 	}
-	
+
 	public interface ExtendedPresenceProcessorIfc {
-		Element extend(XMPPResourceConnection session, Queue<Packet> results);
+		Element extend( XMPPResourceConnection session, Queue<Packet> results );
 	}
-	
+
 }

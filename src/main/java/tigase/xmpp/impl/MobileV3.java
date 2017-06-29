@@ -27,8 +27,8 @@ package tigase.xmpp.impl;
 //~--- non-JDK imports --------------------------------------------------------
 
 import tigase.db.NonAuthUserRepository;
-import tigase.db.TigaseDBException;
 import tigase.kernel.beans.Bean;
+import tigase.kernel.beans.config.ConfigField;
 import tigase.server.Iq;
 import tigase.server.Packet;
 import tigase.server.xmppsession.SessionManager;
@@ -55,20 +55,20 @@ import static tigase.xmpp.impl.MobileV3.*;
  */
 @Id(ID)
 @Handles({
-	@Handle(path={Iq.ELEM_NAME, MOBILE_EL_NAME},xmlns=XMLNS)
+		@Handle(path={Iq.ELEM_NAME, MOBILE_EL_NAME},xmlns=XMLNS)
 })
 @StreamFeatures({
-	@StreamFeature(elem=MOBILE_EL_NAME,xmlns=XMLNS)
+		@StreamFeature(elem=MOBILE_EL_NAME,xmlns=XMLNS)
 })
 @Bean(name = MobileV3.ID, parent = SessionManager.class, active = false)
 public class MobileV3
-				extends AnnotatedXMPPProcessor
-				implements XMPPProcessorIfc, XMPPPacketFilterIfc {
-	
-	private static class StateHolder { 
+		extends AnnotatedXMPPProcessor
+		implements XMPPProcessorIfc, XMPPPacketFilterIfc {
+
+	private static class StateHolder {
 		private final Map<JID,QueueState> states = new HashMap<JID,QueueState>();
 		private final Queue<Packet> queue = new ArrayDeque<Packet>();
-		
+
 		protected QueueState setState(JID jid, QueueState state) {
 			QueueState oldState = getState(jid);
 			if (oldState.value() < state.value()) {
@@ -77,20 +77,20 @@ public class MobileV3
 			}
 			return oldState;
 		}
-		
+
 		protected QueueState getState(JID jid) {
 			QueueState state = states.get(jid);
 			if (state == null)
 				state = QueueState.none;
 			return state;
 		}
-		
+
 		protected void reset() {
 			states.clear();
 			queue.clear();
 		}
 	}
-	
+
 	// default values
 	private static final int    DEF_MAX_QUEUE_SIZE_VAL = 50;
 	protected static final String ID                     = "mobile_v3";
@@ -106,35 +106,25 @@ public class MobileV3
 	private static final String DELAY_ELEM_NAME = "delay";
 	private static final String DELAY_XMLNS = "urn:xmpp:delay";
 	private static final String MESSAGE_ELEM_NAME = "message";
-	
+
 	//private static final ThreadLocal<Queue> prependResultsThreadQueue = new ThreadLocal<Queue>();
 	private static final ThreadLocal<StateHolder> threadState = new ThreadLocal<StateHolder>();
-	
+
 	//~--- fields ---------------------------------------------------------------
 
+	@ConfigField(desc = "Max queue size", alias = MAX_QUEUE_SIZE_KEY)
 	private int maxQueueSize = DEF_MAX_QUEUE_SIZE_VAL;
-	private SimpleDateFormat formatter;	
+	private SimpleDateFormat formatter;
 	{
 		this.formatter = new SimpleDateFormat( "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" );
 		this.formatter.setTimeZone( TimeZone.getTimeZone( "UTC" ) );
 	}
-	
+
 	//~--- methods --------------------------------------------------------------
 
 	@Override
-	public void init(Map<String, Object> settings) throws TigaseDBException {
-		super.init(settings);
-
-		Integer maxQueueSizeVal = (Integer) settings.get(MAX_QUEUE_SIZE_KEY);
-
-		if (maxQueueSizeVal != null) {
-			maxQueueSize = maxQueueSizeVal;
-		}
-	}
-
-	@Override
 	public void process(final Packet packet, final XMPPResourceConnection session,
-			final NonAuthUserRepository repo, final Queue<Packet> results, final Map<String,
+						final NonAuthUserRepository repo, final Queue<Packet> results, final Map<String,
 			Object> settings) {
 		if (session == null) {
 			return;
@@ -154,31 +144,31 @@ public class MobileV3
 			StanzaType type = packet.getType();
 
 			switch (type) {
-			case set :
-				Element el       = packet.getElement().getChild(MOBILE_EL_NAME);
-				String  valueStr = el.getAttributeStaticStr("enable");
+				case set :
+					Element el       = packet.getElement().getChild(MOBILE_EL_NAME);
+					String  valueStr = el.getAttributeStaticStr("enable");
 
-				// if value is true queuing will be enabled
-				boolean value = (valueStr != null) && ("true".equals(valueStr) || "1".equals(
-						valueStr));
+					// if value is true queuing will be enabled
+					boolean value = (valueStr != null) && ("true".equals(valueStr) || "1".equals(
+							valueStr));
 
-				if (session.getSessionData(PRESENCE_QUEUE_KEY) == null) {
+					if (session.getSessionData(PRESENCE_QUEUE_KEY) == null) {
 
-					// session.putSessionData(QUEUE_KEY, new
-					// LinkedBlockingQueue<Packet>());
-					session.putSessionData(PRESENCE_QUEUE_KEY, new ConcurrentHashMap<JID, Packet>());
-				}
-				if (session.getSessionData(PACKET_QUEUE_KEY) == null) {
-					session.putSessionData(PACKET_QUEUE_KEY, new ArrayDeque<Packet>());
-				}
-				session.putSessionData(XMLNS, value);
-				results.offer(packet.okResult((Element) null, 0));
+						// session.putSessionData(QUEUE_KEY, new
+						// LinkedBlockingQueue<Packet>());
+						session.putSessionData(PRESENCE_QUEUE_KEY, new ConcurrentHashMap<JID, Packet>());
+					}
+					if (session.getSessionData(PACKET_QUEUE_KEY) == null) {
+						session.putSessionData(PACKET_QUEUE_KEY, new ArrayDeque<Packet>());
+					}
+					session.putSessionData(XMLNS, value);
+					results.offer(packet.okResult((Element) null, 0));
 
-				break;
+					break;
 
-			default :
-				results.offer(Authorization.BAD_REQUEST.getResponseMessage(packet,
-						"Mobile processing type is incorrect", false));
+				default :
+					results.offer(Authorization.BAD_REQUEST.getResponseMessage(packet,
+							"Mobile processing type is incorrect", false));
 			}
 		} catch (PacketErrorTypeException ex) {
 			Logger.getLogger(MobileV3.class.getName()).log(Level.SEVERE, null, ex);
@@ -200,18 +190,18 @@ public class MobileV3
 	@Override
 	@SuppressWarnings("unchecked")
 	public void filter(Packet _packet, XMPPResourceConnection sessionFromSM,
-			NonAuthUserRepository repo, Queue<Packet> results) {
+					   NonAuthUserRepository repo, Queue<Packet> results) {
 		if ((sessionFromSM == null) ||!sessionFromSM.isAuthorized() || (results == null) ||
 				(results.size() == 0)) {
 			return;
 		}
-		
+
 		StateHolder holder = threadState.get();
 		if (holder == null) {
 			holder = new StateHolder();
 			threadState.set(holder);
 		}
-		
+
 		for (Iterator<Packet> it = results.iterator(); it.hasNext(); ) {
 			Packet res = it.next();
 
@@ -230,7 +220,7 @@ public class MobileV3
 				if (log.isLoggable(Level.FINEST)) {
 					log.log(Level.FINEST, "no session for destination {0} for packet {1} - missing parent session",
 							new Object[] { res.getPacketTo().toString(),
-										   res.toString() });
+									res.toString() });
 				}
 				continue;
 			}
@@ -242,7 +232,7 @@ public class MobileV3
 				if (log.isLoggable(Level.FINEST)) {
 					log.log(Level.FINEST, "no session for destination {0} for packet {1}",
 							new Object[] { res.getPacketTo().toString(),
-							res.toString() });
+									res.toString() });
 				}
 
 				// if there is no session we should not queue
@@ -251,7 +241,7 @@ public class MobileV3
 
 			Map<JID, Packet> presenceQueue = (Map<JID, Packet>) session.getSessionData(PRESENCE_QUEUE_KEY);
 			Queue<Packet> packetQueue = (Queue<Packet>) session.getSessionData(PACKET_QUEUE_KEY);
-			
+
 			//QueueState state = QueueState.need_flush;
 			if (!isQueueEnabled(session)) {
 				if ((presenceQueue == null && packetQueue == null)
@@ -259,7 +249,7 @@ public class MobileV3
 					continue;
 				}
 				if (log.isLoggable(Level.FINEST)) {
-					log.log(Level.FINEST, "mobile queues needs flushing - presences: {0}, packets: {1}", 
+					log.log(Level.FINEST, "mobile queues needs flushing - presences: {0}, packets: {1}",
 							new Object[] {presenceQueue.size(), packetQueue.size() });
 				}
 				holder.setState(res.getPacketTo(), QueueState.need_flush);
@@ -277,7 +267,7 @@ public class MobileV3
 				}
 				state = holder.setState(res.getPacketTo(), state);
 			}
-			
+
 //			switch (state) {
 //				case need_flush:
 //					prependResults = prependResultsThreadQueue.get();
@@ -346,7 +336,7 @@ public class MobileV3
 							synchronized (presenceQueue) {
 								JID connId = session.getConnectionId();
 								for (Packet p : presenceQueue.values()) {
-								// we need to set packet to again in case Stream
+									// we need to set packet to again in case Stream
 									// Management resumption happend in meanwhile
 									p.setPacketTo(connId);
 									holder.queue.offer(p);
@@ -370,7 +360,7 @@ public class MobileV3
 								JID connId = session.getConnectionId();
 								Packet p = null;
 								while ((p = packetQueue.poll()) != null) {
-								// we need to set packet to again in case Stream
+									// we need to set packet to again in case Stream
 									// Management resumption happend in meanwhile
 									p.setPacketTo(connId);
 									holder.queue.offer(p);
@@ -381,7 +371,7 @@ public class MobileV3
 					}
 					catch (NoConnectionIdException ex) {
 						log.log(Level.SEVERE, "this should not happen", ex);
-					}				
+					}
 					break;
 				case queued:
 					break;
@@ -390,7 +380,7 @@ public class MobileV3
 			}
 		}
 		if (!holder.queue.isEmpty()) {
-			if (log.isLoggable(Level.FINEST)) 
+			if (log.isLoggable(Level.FINEST))
 				log.log(Level.FINEST, "sending queued packets = {0}", holder.queue.size());
 			holder.queue.addAll(results);
 			results.clear();
@@ -408,21 +398,21 @@ public class MobileV3
 	 * @param res
 	 * @param presenceQueue
 	 *
-	 * 
+	 *
 	 */
 	private QueueState filter(XMPPResourceConnection session, Packet res, QueueState state,
-			Map<JID,Packet> presenceQueue, Queue<Packet> packetQueue) {
+							  Map<JID,Packet> presenceQueue, Queue<Packet> packetQueue) {
 		if (log.isLoggable(Level.FINEST)) {
 			log.log(Level.FINEST, "checking if packet should be queued {0}", res.toString());
 		}
-		
+
 		if (state == QueueState.need_flush)
 			return state;
 
 		if (res.getElemName() == MESSAGE_ELEM_NAME) {
 			if (state.value() > QueueState.queued.value())
 				return state;
-			
+
 			List<Element> children = res.getElement().getChildren();
 			if (children != null) {
 				for (Element child : children) {
@@ -449,7 +439,7 @@ public class MobileV3
 			}
 			return QueueState.need_packet_flush;
 		}
-		
+
 		if (res.getElemName() != "presence") {
 			if (log.isLoggable(Level.FINEST)) {
 				log.log(Level.FINEST, "ignoring packet, packet is not presence:  {0}", res
@@ -487,42 +477,42 @@ public class MobileV3
 		synchronized (formatter) {
 			timestamp = formatter.format(new Date());
 		}
-		
+
 		try {
-			return new Element(DELAY_ELEM_NAME, new String[] { "xmlns", "from", "stamp" }, 
+			return new Element(DELAY_ELEM_NAME, new String[] { "xmlns", "from", "stamp" },
 					new String[] { DELAY_XMLNS, session.getBareJID().getDomain(), timestamp });
 		}
 		catch (NotAuthorizedException ex) {
 			return null;
 		}
 	}
-	
+
 	//~--- get methods ----------------------------------------------------------
 
 	/**
 	 * Check if queuing is enabled
 	 *
 	 * @param session
-	 * 
+	 *
 	 */
 	protected static boolean isQueueEnabled(XMPPResourceConnection session) {
 		Boolean enabled = (Boolean) session.getSessionData(XMLNS);
 
 		return (enabled != null) && enabled;
 	}
-	
+
 	private static enum QueueState {
 		none(0),
 		queued(1),
 		need_flush(3),
 		need_packet_flush(2);
-		
+
 		private final int value;
-		
+
 		QueueState(int value) {
 			this.value = value;
 		}
-		
+
 		public int value() {
 			return value;
 		}

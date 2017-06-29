@@ -29,6 +29,7 @@ package tigase.xmpp.impl;
 import tigase.db.TigaseDBException;
 
 import tigase.kernel.beans.Inject;
+import tigase.kernel.beans.config.ConfigField;
 import tigase.server.Packet;
 
 import tigase.xmpp.*;
@@ -53,9 +54,9 @@ import static tigase.xmpp.impl.roster.RosterAbstract.SUB_TO;
  * @author <a href="mailto:artur.hefczyc@tigase.org">Artur Hefczyc</a>
  */
 public abstract class PresenceAbstract
-				extends AnnotatedXMPPProcessor
-				implements XMPPProcessorIfc {
-	
+		extends AnnotatedXMPPProcessor
+		implements XMPPProcessorIfc {
+
 	/** Field description */
 	public static final String PRESENCE_ELEMENT_NAME = "presence";
 
@@ -77,8 +78,12 @@ public abstract class PresenceAbstract
 	private static final Logger     log = Logger.getLogger(PresenceAbstract.class.getName());
 	//private static final String[]   PRESENCE_PRIORITY_PATH  = { "presence", "priority" };
 	//private static final String[]   XMLNSS                  = { XMLNS, RosterAbstract.XMLNS_LOAD };
+
+	@ConfigField(desc = "Skip offline sys", alias = SKIP_OFFLINE_SYS_PROP_KEY)
 	private static boolean          skipOfflineSys          = true;
+	@ConfigField(desc = "Skip offline", alias = SKIP_OFFLINE_PROP_KEY)
 	protected static boolean          skipOffline             = false;
+	@ConfigField(desc = "Probe full JID", alias = PRESENCE_PROBE_FULL_JID_KEY)
 	protected static boolean probeFullJID = false;
 
 	//~--- fields ---------------------------------------------------------------
@@ -89,6 +94,30 @@ public abstract class PresenceAbstract
 	// This is required to make sure that dynamic roster will get initialized
 	@Inject(nullAllowed = true)
 	private DynamicRoster dynamicRoster;
+
+	public boolean isSkipOfflineSys() {
+		return skipOfflineSys;
+	}
+
+	public void setSkipOfflineSys(boolean skipOfflineSys) {
+		PresenceAbstract.skipOfflineSys = skipOfflineSys;
+	}
+
+	public boolean isSkipOffline() {
+		return skipOffline;
+	}
+
+	public void setSkipOffline(boolean skipOffline) {
+		PresenceAbstract.skipOffline = skipOffline;
+	}
+
+	public boolean getProbeFullJID() {
+		return probeFullJID;
+	}
+
+	public void setProbeFullJID(boolean probeFullJID) {
+		PresenceAbstract.probeFullJID = probeFullJID;
+	}
 
 	/**
 	 * <code>sendPresenceBroadcast</code> method broadcasts given presence to all
@@ -108,8 +137,8 @@ public abstract class PresenceAbstract
 	 * @throws TigaseDBException
 	 */
 	public void broadcastProbe(XMPPResourceConnection session, Queue<Packet> results,
-			Map<String, Object> settings)
-					throws NotAuthorizedException, TigaseDBException {
+							   Map<String, Object> settings)
+			throws NotAuthorizedException, TigaseDBException {
 		if (log.isLoggable(Level.FINEST)) {
 			log.log(Level.FINEST, "Broadcasting probes for: {0}", session);
 		}
@@ -207,8 +236,8 @@ public abstract class PresenceAbstract
 		return super.concurrentQueuesNo() * 4;
 	}
 
-//	@Override
-	protected static void initSettings(Map<String, Object> settings) throws TigaseDBException {
+	//	@Override
+	protected void initSettings(Map<String, Object> settings) throws TigaseDBException {
 
 		// Init plugin configuration
 		String tmp;
@@ -217,8 +246,8 @@ public abstract class PresenceAbstract
 		probeFullJID    = (tmp != null)
 				? Boolean.parseBoolean(tmp)
 				: probeFullJID;
-			log.log( Level.CONFIG,
-							 "Sending probe from FullJID set to: {0}", probeFullJID );
+		log.log( Level.CONFIG,
+				"Sending probe from FullJID set to: {0}", probeFullJID );
 
 		tmp            = (String) settings.get(SKIP_OFFLINE_PROP_KEY);
 		skipOffline    = (tmp != null)
@@ -230,8 +259,8 @@ public abstract class PresenceAbstract
 				: skipOfflineSys;
 		if (skipOffline || skipOfflineSys) {
 			log.log( Level.CONFIG,
-							 "Skipping sending presence to offline contacts enabled :: skipOffline: {0}, skipOfflineSys: {1}",
-							 new Object[] { skipOffline, skipOfflineSys } );
+					"Skipping sending presence to offline contacts enabled :: skipOffline: {0}, skipOfflineSys: {1}",
+					new Object[] { skipOffline, skipOfflineSys } );
 		}
 	}
 
@@ -254,7 +283,7 @@ public abstract class PresenceAbstract
 	 *                be sent.
 	 */
 	public static void sendPresence(StanzaType t, BareJID from, BareJID to,
-			Queue<Packet> results, Element pres) {
+									Queue<Packet> results, Element pres) {
 		sendPresence(t, JID.jidInstance(from), JID.jidInstance(to), results, pres);
 	}
 
@@ -280,7 +309,7 @@ public abstract class PresenceAbstract
 	 *         provided parameters.
 	 */
 	public static Packet sendPresence(StanzaType t, JID from, JID to,
-			Queue<Packet> results, Element pres) {
+									  Queue<Packet> results, Element pres) {
 		Element presence = null;
 		Packet  result   = null;
 
@@ -289,7 +318,7 @@ public abstract class PresenceAbstract
 			if (t != null) {
 				presence.setAttribute("type", t.toString());
 			}    // end of if (t != null)
-					else {
+			else {
 				presence.setAttribute("type", StanzaType.unavailable.toString());
 			}    // end of if (t != null) else
 			if (null != from ) {
@@ -333,8 +362,8 @@ public abstract class PresenceAbstract
 	 * @exception NotAuthorizedException if an error occurs
 	 */
 	public static void updatePresenceChange(Packet presence,
-			XMPPResourceConnection session, Queue<Packet> results)
-					throws NotAuthorizedException {
+											XMPPResourceConnection session, Queue<Packet> results)
+			throws NotAuthorizedException {
 		boolean initial_p = ((presence.getAttributeStaticStr(Packet.TYPE_ATT) == null) ||
 				"available".equals(presence.getAttributeStaticStr(Packet.TYPE_ATT)) ||
 				"unavailable".equals(presence.getAttributeStaticStr(Packet.TYPE_ATT)));
@@ -349,7 +378,7 @@ public abstract class PresenceAbstract
 				if (log.isLoggable(Level.FINEST)) {
 					log.finest(
 							"Skipping update presence change for a resource which hasn't sent " +
-							"initial presence yet, or is remote connection: " + conn);
+									"initial presence yet, or is remote connection: " + conn);
 				}
 			} else {
 				try {
@@ -394,8 +423,8 @@ public abstract class PresenceAbstract
 	 * @exception NotAuthorizedException if an error occurs
 	 */
 	public static void updateUserResources(Element presence,
-			XMPPResourceConnection session, Queue<Packet> results, boolean initial)
-					throws NotAuthorizedException {
+										   XMPPResourceConnection session, Queue<Packet> results, boolean initial)
+			throws NotAuthorizedException {
 		for (XMPPResourceConnection conn : session.getActiveSessions()) {
 			try {
 				if (log.isLoggable(Level.FINER)) {
@@ -538,7 +567,7 @@ public abstract class PresenceAbstract
 	}
 
 	//~--- methods --------------------------------------------------------------
-	
+
 	/**
 	 * Method checks whether a given contact requires sending presence. In case of
 	 * enabling option {@code skipOffline} and user being offline in the roster
@@ -563,8 +592,8 @@ public abstract class PresenceAbstract
 	 * @throws NotAuthorizedException
 	 */
 	protected static boolean requiresPresenceSending(RosterAbstract roster, JID buddy,
-			XMPPResourceConnection session, boolean systemCheck)
-					throws NotAuthorizedException, TigaseDBException {
+													 XMPPResourceConnection session, boolean systemCheck)
+			throws NotAuthorizedException, TigaseDBException {
 		boolean result = true;
 
 		// if non-system check is enabled during broadcast of non-first initial
@@ -574,7 +603,7 @@ public abstract class PresenceAbstract
 			if ( skipOffline && !isOnline ){
 				if ( log.isLoggable( Level.FINEST ) ){
 					log.log( Level.FINEST, "{0} | buddy: {1} is online: {2}",
-									 new Object[] { session.getJID(), buddy, isOnline } );
+							new Object[] { session.getJID(), buddy, isOnline } );
 				}
 				result = result && false;
 			}
@@ -584,11 +613,11 @@ public abstract class PresenceAbstract
 			boolean isJidOnline = runtime.isJidOnline( buddy );
 
 			if ( runtime.hasCompleteJidsInfo()
-					 && session.isLocalDomain( buddy.getDomain(), false )
-					 && !isJidOnline ){
+					&& session.isLocalDomain( buddy.getDomain(), false )
+					&& !isJidOnline ){
 				if ( log.isLoggable( Level.FINEST ) ){
 					log.log( Level.FINEST, "{0} | buddy: {1} is online (sys): {2}",
-																 new Object[] { session.getJID(), buddy, isJidOnline } );
+							new Object[] { session.getJID(), buddy, isJidOnline } );
 				}
 				result = result && false;
 			}

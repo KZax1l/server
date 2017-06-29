@@ -44,8 +44,8 @@ import static tigase.xmpp.impl.DomainFilter.ID;
  */
 @Bean(name = ID, parent = SessionManager.class, active = true)
 public class DomainFilter
-				extends XMPPProcessor
-				implements XMPPPacketFilterIfc, XMPPPreprocessorIfc {
+		extends XMPPProcessor
+		implements XMPPPacketFilterIfc, XMPPPreprocessorIfc {
 	/** constant domain key name */
 	public static final String ALLOWED_DOMAINS_KEY = "allowed-domains";
 
@@ -63,13 +63,13 @@ public class DomainFilter
 	private static final String[]   XMLNSS   = { ALL_NAMES };
 
 	/** default local hostname */
-	private static String local_hostname;
-	
+	private static String local_hostname = DNSResolverFactory.getInstance().getDefaultHost();
+
 	private static final String[] EMPTY_STRING_ARRAY = new String[0];
 
 	@Override
 	public void filter(Packet packet, XMPPResourceConnection session,
-			NonAuthUserRepository repo, Queue<Packet> results) {
+					   NonAuthUserRepository repo, Queue<Packet> results) {
 		if (log.isLoggable(Level.FINEST)) {
 			log.log(Level.FINEST, "Filtering (packet): {0}", packet);
 		}
@@ -92,7 +92,7 @@ public class DomainFilter
 				if ( log.isLoggable( Level.FINEST ) ){
 					log.log( Level.FINEST, "Filtering (result): {0}", res );
 				}
-				
+
 				if (domains == DomainFilterPolicy.BLOCK) {
 					if ((res.getType() != StanzaType.error) && ((((res.getStanzaFrom() != null) &&
 							!session.isUserId(res.getStanzaFrom().getBareJID())) || ((res
@@ -110,137 +110,137 @@ public class DomainFilter
 					outDomain = res.getStanzaTo().getDomain();
 				}
 				switch (domains) {
-				case LOCAL :
-					if ((outDomain != null) &&!session.isLocalDomain(outDomain, true) && !outDomain.equals( local_hostname )) {
-						removePacket( it, res, errors,
-													"You can only communicate within the server local domains." );
-						if ( log.isLoggable( Level.FINEST ) ){
-							log.log( Level.FINEST, "LOCAL Domains only, blocking packet (filter): {0}", res );
+					case LOCAL :
+						if ((outDomain != null) &&!session.isLocalDomain(outDomain, true) && !outDomain.equals( local_hostname )) {
+							removePacket( it, res, errors,
+									"You can only communicate within the server local domains." );
+							if ( log.isLoggable( Level.FINEST ) ){
+								log.log( Level.FINEST, "LOCAL Domains only, blocking packet (filter): {0}", res );
+							}
+						} else {
+							if ( log.isLoggable( Level.FINEST ) ){
+								log.log( Level.FINEST, "LOCAL Domains only, packet not blocked (filter): {0}", res );
+							}
 						}
-					} else {
-						if ( log.isLoggable( Level.FINEST ) ){
-							log.log( Level.FINEST, "LOCAL Domains only, packet not blocked (filter): {0}", res );
-						}
-					}
 
-					break;
-
-				case OWN :
-					if ((outDomain != null) && !outDomain.equals( local_hostname )
-							&&!outDomain.endsWith(session.getDomain().getVhost().getDomain())) {
-
-						removePacket( it, res, errors,
-													"You can only communicate within your own domain." );
-						if ( log.isLoggable( Level.FINEST ) ){
-							log.log( Level.FINEST, "OWN Domain only, blocking packet (filter): {0}", res );
-						}
-					} else {
-						if ( log.isLoggable( Level.FINEST ) ){
-							log.log( Level.FINEST, "OWN Domain only, packet not blocked (filter): {0}", res );
-						}
-					}
-
-					break;
-
-				case CUSTOM :
-					String[] customRules = getDomainsList(session);
-
-					if ( ( outDomain == null ) || outDomain.equals( local_hostname )
-							 || ( res.getType() != null && res.getType().equals( StanzaType.error ) )
-							 || ( res.getStanzaFrom() == null && res.getStanzaTo() != null
-										&& session.isUserId( res.getStanzaTo().getBareJID() ) ) ){
-						// don't filter system packets, breaks things
 						break;
-					}
 
-					boolean isAlowed = CustomDomainFilter.isAllowed( res.getStanzaFrom(), res.getStanzaTo(), customRules );
+					case OWN :
+						if ((outDomain != null) && !outDomain.equals( local_hostname )
+								&&!outDomain.endsWith(session.getDomain().getVhost().getDomain())) {
 
-					if ( !isAlowed ){
-						removePacket( it, res, errors,
-													"Your packet was blocked by server filtering rules - FORBIDDEN" );
-						if ( log.isLoggable( Level.FINEST ) ){
-							log.log( Level.FINEST, "CUSTOM filtering rules for domain {0}, blocking packet (filter): {1}, rules: {2}",
-											 new Object[] { outDomain, res, Arrays.asList( customRules) } );
+							removePacket( it, res, errors,
+									"You can only communicate within your own domain." );
+							if ( log.isLoggable( Level.FINEST ) ){
+								log.log( Level.FINEST, "OWN Domain only, blocking packet (filter): {0}", res );
+							}
+						} else {
+							if ( log.isLoggable( Level.FINEST ) ){
+								log.log( Level.FINEST, "OWN Domain only, packet not blocked (filter): {0}", res );
+							}
 						}
-					} else {
-						if ( log.isLoggable( Level.FINEST ) ){
-							log.log( Level.FINEST, "CUSTOM filtering rules for domain {0}, packet not blocked (filter): {1}, rules: {2}",
-											 new Object[] { outDomain, res, Arrays.asList( customRules) } );
-						}
-					}
 
-					break;
-
-				case BLACKLIST :
-					String[] blacklistedDomains = getDomainsList(session);
-					boolean  blacklist_match          = false;
-
-					if ( ( outDomain == null ) || outDomain.equals( local_hostname ) ){
-						// don't filter system packets, breaks things
 						break;
-					}
-					for (String domain : blacklistedDomains) {
 
-						// Intentionally comparing domains by reference instead of value
-						// domain is processed through the String.intern() method
-						if (domain == outDomain) {
-							blacklist_match = true;
+					case CUSTOM :
+						String[] customRules = getDomainsList(session);
 
+						if ( ( outDomain == null ) || outDomain.equals( local_hostname )
+								|| ( res.getType() != null && res.getType().equals( StanzaType.error ) )
+								|| ( res.getStanzaFrom() == null && res.getStanzaTo() != null
+								&& session.isUserId( res.getStanzaTo().getBareJID() ) ) ){
+							// don't filter system packets, breaks things
 							break;
 						}
-					}
-					if (blacklist_match) {
-						removePacket(it, res, errors,
-								"You attempted to communicate with the blacklisted domain - FORBIDDEN");
-						if ( log.isLoggable( Level.FINEST ) ){
-							log.log( Level.FINEST, "BLACKLIST domain {1}, blocking packet (filter): {0}",
-																		 new Object [] {res,outDomain} );
+
+						boolean isAlowed = CustomDomainFilter.isAllowed( res.getStanzaFrom(), res.getStanzaTo(), customRules );
+
+						if ( !isAlowed ){
+							removePacket( it, res, errors,
+									"Your packet was blocked by server filtering rules - FORBIDDEN" );
+							if ( log.isLoggable( Level.FINEST ) ){
+								log.log( Level.FINEST, "CUSTOM filtering rules for domain {0}, blocking packet (filter): {1}, rules: {2}",
+										new Object[] { outDomain, res, Arrays.asList( customRules) } );
+							}
+						} else {
+							if ( log.isLoggable( Level.FINEST ) ){
+								log.log( Level.FINEST, "CUSTOM filtering rules for domain {0}, packet not blocked (filter): {1}, rules: {2}",
+										new Object[] { outDomain, res, Arrays.asList( customRules) } );
+							}
 						}
-					} else {
-						if ( log.isLoggable( Level.FINEST ) ){
-							log.log( Level.FINEST, "BLACKLIST domain {1], packet not blocked (filter): {0}",
-																		 new Object [] {res,outDomain} );
-						}
-					}
 
-
-					break;
-
-				case LIST :
-
-					String[] allowedDomains = getDomainsList(session);
-					boolean  found          = false;
-
-					if ( ( outDomain == null ) || outDomain.equals( local_hostname ) ){
-						// don't filter system packets, breaks things
 						break;
-					}
-					for (String domain : allowedDomains) {
 
-						// Intentionally comparing domains by reference instead of value
-						// domain is processed through the String.intern() method
-						if (domain == outDomain) {
-							found = true;
+					case BLACKLIST :
+						String[] blacklistedDomains = getDomainsList(session);
+						boolean  blacklist_match          = false;
 
+						if ( ( outDomain == null ) || outDomain.equals( local_hostname ) ){
+							// don't filter system packets, breaks things
 							break;
 						}
-					}
-					if (!found) {
-						removePacket( it, res, errors,
-													"You can only communicate within selected list of domains." );
-						if ( log.isLoggable( Level.FINEST ) ){
-							log.log( Level.FINEST, "LIST Domain only {1}, blocking packet (filter): {0}",
-											 new Object[] { res, outDomain } );
+						for (String domain : blacklistedDomains) {
+
+							// Intentionally comparing domains by reference instead of value
+							// domain is processed through the String.intern() method
+							if (domain == outDomain) {
+								blacklist_match = true;
+
+								break;
+							}
 						}
-					} else {
-						if ( log.isLoggable( Level.FINEST ) ){
-							log.log( Level.FINEST, "LIST Domain only {1}, packet not blocked (filter): {0}",
-											 new Object[] { res, outDomain } );
+						if (blacklist_match) {
+							removePacket(it, res, errors,
+									"You attempted to communicate with the blacklisted domain - FORBIDDEN");
+							if ( log.isLoggable( Level.FINEST ) ){
+								log.log( Level.FINEST, "BLACKLIST domain {1}, blocking packet (filter): {0}",
+										new Object [] {res,outDomain} );
+							}
+						} else {
+							if ( log.isLoggable( Level.FINEST ) ){
+								log.log( Level.FINEST, "BLACKLIST domain {1], packet not blocked (filter): {0}",
+										new Object [] {res,outDomain} );
+							}
 						}
-					}
 
 
-					break;
+						break;
+
+					case LIST :
+
+						String[] allowedDomains = getDomainsList(session);
+						boolean  found          = false;
+
+						if ( ( outDomain == null ) || outDomain.equals( local_hostname ) ){
+							// don't filter system packets, breaks things
+							break;
+						}
+						for (String domain : allowedDomains) {
+
+							// Intentionally comparing domains by reference instead of value
+							// domain is processed through the String.intern() method
+							if (domain == outDomain) {
+								found = true;
+
+								break;
+							}
+						}
+						if (!found) {
+							removePacket( it, res, errors,
+									"You can only communicate within selected list of domains." );
+							if ( log.isLoggable( Level.FINEST ) ){
+								log.log( Level.FINEST, "LIST Domain only {1}, blocking packet (filter): {0}",
+										new Object[] { res, outDomain } );
+							}
+						} else {
+							if ( log.isLoggable( Level.FINEST ) ){
+								log.log( Level.FINEST, "LIST Domain only {1}, packet not blocked (filter): {0}",
+										new Object[] { res, outDomain } );
+							}
+						}
+
+
+						break;
 				}
 			}
 			results.addAll(errors);
@@ -261,14 +261,8 @@ public class DomainFilter
 	}
 
 	@Override
-	public void init( Map<String, Object> settings ) throws TigaseDBException {
-		super.init( settings );
-		local_hostname = DNSResolverFactory.getInstance().getDefaultHost();
-	}
-
-	@Override
 	public boolean preProcess( Packet packet, XMPPResourceConnection session,
-														 NonAuthUserRepository repo, Queue<Packet> results, Map<String, Object> settings ) {
+							   NonAuthUserRepository repo, Queue<Packet> results, Map<String, Object> settings ) {
 		if ( log.isLoggable( Level.FINEST ) ){
 			log.log( Level.FINEST, "Processing: {0}", packet );
 		}
@@ -291,27 +285,27 @@ public class DomainFilter
 			}
 
 			String outDomain = ( packet.getStanzaFrom() != null )
-												 ? packet.getStanzaFrom().getDomain()
-												 : null;
+					? packet.getStanzaFrom().getDomain()
+					: null;
 
 			try {
 				if ( session.getConnectionId().equals( packet.getPacketFrom() ) ){
 					outDomain = ( packet.getStanzaTo() != null )
-											? packet.getStanzaTo().getDomain()
-											: null;
+							? packet.getStanzaTo().getDomain()
+							: null;
 				}
 			} catch ( NoConnectionIdException ex ) {
 				log.log( Level.WARNING,
-								 "No connection id for session, even though this is not a server "
-								 + "session: {0}, request: {1}", new Object[] { session,
-																																packet } );
+						"No connection id for session, even though this is not a server "
+								+ "session: {0}, request: {1}", new Object[] { session,
+								packet } );
 			}
 			switch ( domains ) {
 				case BLOCK:
-				if ((packet.getType() == StanzaType.error) || ((packet.getStanzaFrom() ==
-						null) || (session.isUserId(packet.getStanzaFrom().getBareJID())
-											&& ((packet.getStanzaTo() == null )
-													|| session.isUserId( packet.getStanzaTo().getBareJID() ) ) ) ) ){
+					if ((packet.getType() == StanzaType.error) || ((packet.getStanzaFrom() ==
+							null) || (session.isUserId(packet.getStanzaFrom().getBareJID())
+							&& ((packet.getStanzaTo() == null )
+							|| session.isUserId( packet.getStanzaTo().getBareJID() ) ) ) ) ){
 						return stop;
 					} else {
 						removePacket( null, packet, results, "Communication blocked." );
@@ -326,16 +320,16 @@ public class DomainFilter
 				case LOCAL:
 					if ( ( outDomain != null ) && !session.isLocalDomain( outDomain, true ) ){
 						removePacket( null, packet, results,
-													"You can only communicate within the server local domains." );
+								"You can only communicate within the server local domains." );
 						stop = true;
 						if ( log.isLoggable( Level.FINEST ) ){
 							log.log( Level.FINEST, "LOCAL Domains only {1}, blocking packet: {0}",
-											 new Object[] { packet, outDomain } );
+									new Object[] { packet, outDomain } );
 						}
 					} else {
 						if ( log.isLoggable( Level.FINEST ) ){
 							log.log( Level.FINEST, "LOCAL Domains only {1}, packet not blocked: {0}",
-											 new Object[] { packet, outDomain } );
+									new Object[] { packet, outDomain } );
 						}
 					}
 
@@ -343,18 +337,18 @@ public class DomainFilter
 
 				case OWN:
 					if ( ( outDomain != null ) && !outDomain.equals( local_hostname )
-							 && !outDomain.endsWith( session.getDomain().getVhost().getDomain() ) ){
+							&& !outDomain.endsWith( session.getDomain().getVhost().getDomain() ) ){
 						removePacket( null, packet, results,
-													"You can only communicate within your own domain." );
+								"You can only communicate within your own domain." );
 						stop = true;
 						if ( log.isLoggable( Level.FINEST ) ){
 							log.log( Level.FINEST, "OWN Domain only {1}, blocking packet: {0}",
-											 new Object[] { packet, outDomain } );
+									new Object[] { packet, outDomain } );
 						}
 					} else {
 						if ( log.isLoggable( Level.FINEST ) ){
 							log.log( Level.FINEST, "OWN Domain only {1}, packet not blocked: {0}",
-											 new Object[] { packet, outDomain } );
+									new Object[] { packet, outDomain } );
 						}
 					}
 
@@ -364,9 +358,9 @@ public class DomainFilter
 					String[] customRules = getDomainsList( session );
 
 					if ( ( outDomain == null ) || outDomain.equals( local_hostname )
-							 || (packet.getType() == StanzaType.error)
-							 || ( packet.getStanzaFrom() == null && packet.getStanzaTo() != null
-										&& session.isUserId( packet.getStanzaTo().getBareJID() ) ) ){
+							|| (packet.getType() == StanzaType.error)
+							|| ( packet.getStanzaFrom() == null && packet.getStanzaTo() != null
+							&& session.isUserId( packet.getStanzaTo().getBareJID() ) ) ){
 						// don't filter system packets, breaks things
 						break;
 					}
@@ -375,16 +369,16 @@ public class DomainFilter
 
 					if ( !isAlowed ){
 						removePacket( null, packet, results,
-													"Your packet was blocked by server filtering rules - FORBIDDEN" );
+								"Your packet was blocked by server filtering rules - FORBIDDEN" );
 						stop = true;
 						if ( log.isLoggable( Level.FINEST ) ){
 							log.log( Level.FINEST, "CUSTOM filtering rules {0}, blocking packet (filter): {1}",
-											 new Object[] { outDomain, packet } );
+									new Object[] { outDomain, packet } );
 						}
 					} else {
 						if ( log.isLoggable( Level.FINEST ) ){
 							log.log( Level.FINEST, "CUSTOM filtering rules {0}, packet not blocked (filter): {1}",
-											 new Object[] { outDomain, packet } );
+									new Object[] { outDomain, packet } );
 						}
 					}
 
@@ -400,7 +394,7 @@ public class DomainFilter
 
 					for ( String domain : disallowedDomains ) {
 
-					// Intentionally comparing domains by reference instead of value
+						// Intentionally comparing domains by reference instead of value
 						// domain is processed through the String.intern() method
 						if ( domain == outDomain ){
 							blacklist_match = true;
@@ -410,16 +404,16 @@ public class DomainFilter
 					}
 					if ( blacklist_match ){
 						removePacket( null, packet, results,
-													"You attempted to communicate with the blacklisted domain - FORBIDDEN" );
+								"You attempted to communicate with the blacklisted domain - FORBIDDEN" );
 						stop = true;
 						if ( log.isLoggable( Level.FINEST ) ){
 							log.log( Level.FINEST, "Packet to blacklisted domain {1}, blocking packet: {0}",
-											 new Object[] { packet, outDomain } );
+									new Object[] { packet, outDomain } );
 						}
 					} else {
 						if ( log.isLoggable( Level.FINEST ) ){
 							log.log( Level.FINEST, "Packet NOT TO blacklisted domain {1}, NOT blocking packet: {0}",
-											 new Object[] { packet, outDomain } );
+									new Object[] { packet, outDomain } );
 						}
 					}
 
@@ -435,7 +429,7 @@ public class DomainFilter
 					}
 					for ( String domain : allowedDomains ) {
 
-					// Intentionally comparing domains by reference instead of value
+						// Intentionally comparing domains by reference instead of value
 						// domain is processed through the String.intern() method
 						if ( domain == outDomain ){
 							found = true;
@@ -445,16 +439,16 @@ public class DomainFilter
 					}
 					if ( !found ){
 						removePacket( null, packet, results,
-													"You can only communicate within selected list of domains." );
+								"You can only communicate within selected list of domains." );
 						stop = true;
 						if ( log.isLoggable( Level.FINEST ) ){
 							log.log( Level.FINEST, "LISTED Domains only {1}, blocking packet: {0}",
-											 new Object[] { packet, outDomain } );
+									new Object[] { packet, outDomain } );
 						}
 					} else {
 						if ( log.isLoggable( Level.FINEST ) ){
 							log.log( Level.FINEST, "LISTED Domain only {1}, packet not blocked: {0}",
-											 new Object[] { packet, outDomain } );
+									new Object[] { packet, outDomain } );
 						}
 					}
 
@@ -496,26 +490,26 @@ public class DomainFilter
 	 *                 of the packet processing.
 	 *
 	 * @return relevant domain filtering policy
-	 * 
+	 *
 	 * @throws NotAuthorizedException
 	 * @throws TigaseDBException
 	 */
 	public DomainFilterPolicy getDomains(XMPPResourceConnection session)
-					throws NotAuthorizedException, TigaseDBException {
+			throws NotAuthorizedException, TigaseDBException {
 		VHostItem domain = session.getDomain();
 		DomainFilterPolicy domainFilterPolicy
-											 = (DomainFilterPolicy) session.getCommonSessionData(ALLOWED_DOMAINS_KEY );
+				= (DomainFilterPolicy) session.getCommonSessionData(ALLOWED_DOMAINS_KEY );
 
 		if (log.isLoggable(Level.FINEST)) {
 			log.log(Level.FINEST, "Domains read from user session: {0} for VHost: {1}",
-														new Object[] {domainFilterPolicy, domain} );
+					new Object[] {domainFilterPolicy, domain} );
 		}
 		if (domainFilterPolicy == null) {
 			String dbDomains = session.getData(null, ALLOWED_DOMAINS_KEY, null);
 
 			if (log.isLoggable(Level.FINEST)) {
 				log.log(Level.FINEST, "Domains read from database: {0} for VHost: {1}",
-															new Object[] {dbDomains, domain});
+						new Object[] {dbDomains, domain});
 			}
 			domainFilterPolicy = DomainFilterPolicy.valueof(dbDomains);
 			if (domainFilterPolicy == null) {
@@ -528,7 +522,7 @@ public class DomainFilter
 			}
 			if (log.isLoggable(Level.FINEST)) {
 				log.log(Level.FINEST, "Domains read from VHost item: {0} for VHost: {1}",
-															new Object[] {domainFilterPolicy, domain});
+						new Object[] {domainFilterPolicy, domain});
 			}
 			session.putCommonSessionData( ALLOWED_DOMAINS_KEY, domainFilterPolicy );
 		}
@@ -549,21 +543,21 @@ public class DomainFilter
 	 *                during the live of the online session. This parameter can be
 	 *                null if there is no online user session at the time of the
 	 *                packet processing.
-		 *
+	 *
 	 * @return list of domains to be whitelisted/blacklisted
 	 *
 	 * @throws NotAuthorizedException
 	 * @throws TigaseDBException
 	 */
 	public String[] getDomainsList(XMPPResourceConnection session)
-					throws NotAuthorizedException, TigaseDBException {
+			throws NotAuthorizedException, TigaseDBException {
 		VHostItem domain = session.getDomain();
 
 		String[] domainsList = (String[]) session.getCommonSessionData( ALLOWED_DOMAINS_LIST_KEY );
 
 		if ( log.isLoggable( Level.FINEST ) ){
 			log.log( Level.FINEST, "Getting list of domains from user session: {0} for VHost: {1}",
-														 new Object[] { domainsList != null? Arrays.asList( domainsList) : "", domain } );
+					new Object[] { domainsList != null? Arrays.asList( domainsList) : "", domain } );
 		}
 
 		if ( domainsList == null ){
@@ -571,7 +565,7 @@ public class DomainFilter
 
 			if ( log.isLoggable( Level.FINEST ) ){
 				log.log( Level.FINEST, "Domains list read from database: {0} for VHost: {1}",
-															 new Object[] { dbDomains, domain } );
+						new Object[] { dbDomains, domain } );
 			}
 
 			if ( dbDomains != null ){
@@ -580,7 +574,7 @@ public class DomainFilter
 				domainsList = domain.getDomainFilterDomains();
 				if ( log.isLoggable( Level.FINEST ) ){
 					log.log( Level.FINEST, "Domains list read from VHost: {0} for VHost: {1}",
-																 new Object[] { domainsList != null? Arrays.asList( domainsList) : "", domain } );
+							new Object[] { domainsList != null? Arrays.asList( domainsList) : "", domain } );
 				}
 			}
 			if (domainsList == null)

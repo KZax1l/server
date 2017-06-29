@@ -27,8 +27,8 @@ package tigase.xmpp.impl;
 //~--- non-JDK imports --------------------------------------------------------
 
 import tigase.db.NonAuthUserRepository;
-import tigase.db.TigaseDBException;
 import tigase.kernel.beans.Bean;
+import tigase.kernel.beans.config.ConfigField;
 import tigase.server.Packet;
 import tigase.server.xmppsession.SessionManager;
 import tigase.xml.Element;
@@ -56,12 +56,12 @@ import static tigase.xmpp.impl.Message.XMLNS;
  */
 @Id(ELEM_NAME)
 @Handles({
-	@Handle(path={ ELEM_NAME },xmlns=XMLNS)
+		@Handle(path={ ELEM_NAME },xmlns=XMLNS)
 })
 @Bean(name = ELEM_NAME, parent = SessionManager.class, active = false)
 public class Message
-				extends AnnotatedXMPPProcessor
-				implements XMPPProcessorIfc, XMPPPreprocessorIfc, XMPPPacketFilterIfc {
+		extends AnnotatedXMPPProcessor
+		implements XMPPProcessorIfc, XMPPPreprocessorIfc, XMPPPacketFilterIfc {
 
 	protected static final String     ELEM_NAME = tigase.server.Message.ELEM_NAME;
 
@@ -71,22 +71,11 @@ public class Message
 	private static final String   SILENTLY_IGNORE_ERROR_KEY = "silently-ignore-message";
 	protected static final String   XMLNS  = "jabber:client";
 
+	@ConfigField(desc = "Message delivery rules", alias = DELIVERY_RULES_KEY)
 	private MessageDeliveryRules deliveryRules = MessageDeliveryRules.inteligent;
+	@ConfigField(desc = "Silently ignore errors", alias = SILENTLY_IGNORE_ERROR_KEY)
 	private boolean silentlyIgnoreError = false;
 	//~--- methods --------------------------------------------------------------
-
-	@Override
-	public void init(Map<String, Object> settings) throws TigaseDBException {
-		super.init(settings);
-
-		deliveryRules = settings.containsKey(DELIVERY_RULES_KEY)
-				? MessageDeliveryRules.valueOf((String) settings.get(DELIVERY_RULES_KEY))
-				: MessageDeliveryRules.inteligent;
-
-		silentlyIgnoreError = settings.containsKey(SILENTLY_IGNORE_ERROR_KEY)
-				? Boolean.valueOf((String) settings.get(SILENTLY_IGNORE_ERROR_KEY))
-				: Boolean.FALSE;
-	}
 
 	@Override
 	public void filter(Packet packet, XMPPResourceConnection session, NonAuthUserRepository repo, Queue<Packet> results) {
@@ -95,8 +84,8 @@ public class Message
 
 	@Override
 	public void process(Packet packet, XMPPResourceConnection session,
-			NonAuthUserRepository repo, Queue<Packet> results, Map<String, Object> settings)
-					throws XMPPException {
+						NonAuthUserRepository repo, Queue<Packet> results, Map<String, Object> settings)
+			throws XMPPException {
 
 		// For performance reasons it is better to do the check
 		// before calling logging method.
@@ -123,7 +112,7 @@ public class Message
 				if (log.isLoggable(Level.FINEST)) {
 					log.log(Level.FINEST, "Message 'to' this user, packet: {0}, for session: {1}",
 							new Object[] { packet,
-							session });
+									session });
 				}
 
 				if (packet.getStanzaFrom() != null && session.isUserId(packet.getStanzaFrom().getBareJID())) {
@@ -181,7 +170,7 @@ public class Message
 						if (log.isLoggable(Level.FINEST)) {
 							log.log(Level.FINEST, "Delivering message, packet: {0}, to session: {1}",
 									new Object[] { packet,
-									con });
+											con });
 						}
 					}
 				} else {
@@ -262,7 +251,7 @@ public class Message
 						// treat it as a stanza with bare "to" attribute
 						Packet result = packet.copyElementOnly();
 						result.initVars(packet.getStanzaFrom(),
-															packet.getStanzaTo().copyWithoutResource());
+								packet.getStanzaTo().copyWithoutResource());
 						results.offer(result);
 						break;
 
@@ -286,7 +275,7 @@ public class Message
 			else {
 				if ( !silentlyIgnoreError ){
 					results.offer( Authorization.RECIPIENT_UNAVAILABLE.getResponseMessage( packet,
-																																								 "The recipient is no longer available.", true ) );
+							"The recipient is no longer available.", true ) );
 				}
 			}
 		}
@@ -309,10 +298,10 @@ public class Message
 	/**
 	 * Method returns list of XMPPResourceConnections to which message should be delivered for 
 	 * session passes as parameter if message was sent to bare JID
-	 * 
+	 *
 	 * @param session
 	 * @return
-	 * @throws NotAuthorizedException 
+	 * @throws NotAuthorizedException
 	 */
 	public List<XMPPResourceConnection> getConnectionsForMessageDelivery(XMPPResourceConnection session) throws NotAuthorizedException {
 		List<XMPPResourceConnection> conns = new ArrayList<XMPPResourceConnection>();
@@ -331,10 +320,10 @@ public class Message
 	/**
 	 * Method returns list of JIDs to which message should be delivered for 
 	 * session passes as parameter if message was sent to bare JID
-	 * 
+	 *
 	 * @param session
 	 * @return
-	 * @throws NotAuthorizedException 
+	 * @throws NotAuthorizedException
 	 */
 	public Set<JID> getJIDsForMessageDelivery(XMPPResourceConnection session) throws NotAuthorizedException {
 		Set<JID> jids = new HashSet<JID>();
@@ -343,14 +332,14 @@ public class Message
 				jids.add(conn.getJID());
 		}
 		return jids;
-	}	
-	
+	}
+
 	/**
 	 * Method returns true if there is at least one XMPPResourceConnection which is allowed to 
 	 * receive message for XMPPResourceConnection
-	 * 
+	 *
 	 * @param session
-	 * @return 
+	 * @return
 	 */
 	public boolean hasConnectionForMessageDelivery(XMPPResourceConnection session) {
 		try {

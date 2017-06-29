@@ -28,7 +28,6 @@ package tigase.xmpp.impl;
 
 import tigase.db.MsgRepositoryIfc;
 import tigase.db.NonAuthUserRepository;
-import tigase.db.TigaseDBException;
 import tigase.db.UserNotFoundException;
 import tigase.kernel.beans.Bean;
 import tigase.kernel.beans.Inject;
@@ -56,28 +55,31 @@ import static tigase.server.amp.AmpFeatureIfc.*;
  */
 @Bean(name = MessageAmp.ID, parent = SessionManager.class, active = true)
 public class MessageAmp
-				extends XMPPProcessor
-				implements XMPPPacketFilterIfc, XMPPPostprocessorIfc, 
-						XMPPPreprocessorIfc, XMPPProcessorIfc, RegistrarBean {
+		extends XMPPProcessor
+		implements XMPPPacketFilterIfc, XMPPPostprocessorIfc,
+		XMPPPreprocessorIfc, XMPPProcessorIfc, RegistrarBean {
 	private static final String     AMP_JID_PROP_KEY     = "amp-jid";
 	private static final String     STATUS_ATTRIBUTE_NAME = "status";
 	private static final String[][] ELEMENTS             = {
-		{ "message" }, { "presence" }, { "iq", "msgoffline" }
+			{ "message" }, { "presence" }, { "iq", "msgoffline" }
 	};
 	protected static final String     ID                   = "amp";
 	private static final Logger     log = Logger.getLogger(MessageAmp.class.getName());
 	private static final String     XMLNS                = "http://jabber.org/protocol/amp";
 	private static final String[]   XMLNSS = { "jabber:client", "jabber:client", "msgoffline" };
-	private static Element[]        DISCO_FEATURES = { new Element("feature",
-			new String[] { "var" }, new String[] { XMLNS }),
-			new Element("feature", new String[] { "var" }, new String[] { "msgoffline" }) };
-	private static String defHost;
+	private static final Element[] DISCO_FEATURES_WITH_OFFLINE = {
+			new Element("feature", new String[]{"var"}, new String[]{XMLNS}),
+			new Element("feature", new String[]{"var"}, new String[]{"msgoffline"})};
+	private static final Element[] DISCO_FEATURES_WITHOUT_OFFLINE = new Element[]{
+			new Element("feature", new String[]{"var"}, new String[]{XMLNS})};
+	private static String defHost = DNSResolverFactory.getInstance().getDefaultHost();
 
 //	private static final String STATUS_ATTRIBUTE_NAME = "status";
 
 	//~--- fields ---------------------------------------------------------------
 
-	private JID             ampJID           = null;
+	@ConfigField(desc = "AMP component JID", alias = AMP_JID_PROP_KEY)
+	private JID             ampJID           = JID.jidInstanceNS("amp@" + defHost);
 	@Inject
 	private MsgRepositoryIfc   msg_repo         = null;
 	@Inject(nullAllowed = true)
@@ -95,57 +97,20 @@ public class MessageAmp
 	}
 
 	@Override
-	public void init(Map<String, Object> settings) throws TigaseDBException {
-		super.init(settings);
-
-		defHost = DNSResolverFactory.getInstance().getDefaultHost();
-
-		if(offlineProcessor!=null)
-			offlineProcessor.init(settings);
-		
-		if(messageProcessor!=null)
-			messageProcessor.init(settings);
-
-		String ampJIDstr = (String) settings.get(AMP_JID_PROP_KEY);
-
-		if (null != ampJIDstr) {
-			ampJID = JID.jidInstanceNS(ampJIDstr);
-		} else {
-			ampJID = JID.jidInstanceNS("amp@" + defHost);
-		}
-		log.log(Level.CONFIG, "Loaded AMP_JID option: {0} = {1}", new Object[] {
-				AMP_JID_PROP_KEY,
-				ampJID });
-
-		String off_val = (String) settings.get(MSG_OFFLINE_PROP_KEY);
-
-		if (off_val == null) {
-			off_val = System.getProperty(MSG_OFFLINE_PROP_KEY);
-		}
-		if ((off_val != null) &&!Boolean.parseBoolean(off_val)) {
-			log.log(Level.CONFIG, "Offline messages storage: {0}", new Object[] { off_val });
-			offlineProcessor = null;
-			DISCO_FEATURES = new Element[] { new Element("feature", new String[] { "var" },
-					new String[] { XMLNS }) };
-		}
-		
-	}
-
-	@Override
 	public void filter(Packet packet, XMPPResourceConnection session, NonAuthUserRepository repo, Queue<Packet> results) {
 		C2SDeliveryErrorProcessor.filter(packet, session, repo, results, ampJID);
 	}
-	
+
 	@Override
 	public void postProcess(Packet packet, XMPPResourceConnection session,
-			NonAuthUserRepository repo, Queue<Packet> results, Map<String, Object> settings) {
+							NonAuthUserRepository repo, Queue<Packet> results, Map<String, Object> settings) {
 		if ((offlineProcessor != null) && (session == null || (packet.getElemName() == Message.ELEM_NAME &&
-					!messageProcessor.hasConnectionForMessageDelivery(session)))) {
-			if (packet.getElemName() == tigase.server.Message.ELEM_NAME 
+				!messageProcessor.hasConnectionForMessageDelivery(session)))) {
+			if (packet.getElemName() == tigase.server.Message.ELEM_NAME
 					&& packet.getStanzaTo() != null && packet.getStanzaTo().getResource() != null) {
 				return;
 			}
-			
+
 			Element amp = packet.getElement().getChild("amp");
 
 			if ((amp == null) || (amp.getXMLNS() != XMLNS)
@@ -157,7 +122,7 @@ public class MessageAmp
 					if (session != null && packet.getStanzaTo() != null
 							&& (packet.getStanzaTo().getLocalpart() == null || !session.isUserId(packet.getStanzaTo().getBareJID())) )
 						return;
-					
+
 					Authorization saveResult = offlineProcessor.savePacketForOffLineUser(packet, msg_repo, repo);
 					Packet result = null;
 
@@ -168,7 +133,7 @@ public class MessageAmp
 							switch (quotaExceededRule) {
 								case error:
 									result = saveResult.getResponseMessage(packet, "Offline messages queue is full", true);
-									break;									
+									break;
 								case drop:
 									break;
 							}
@@ -178,21 +143,21 @@ public class MessageAmp
 					}
 					if (result != null) {
 						results.offer(result);
-					}		
+					}
 				} catch (UserNotFoundException ex) {
 					if (log.isLoggable(Level.FINEST)) {
 						log.finest(
 								"UserNotFoundException at trying to save packet for off-line user." +
-								packet);
+										packet);
 					}
 				} catch (NotAuthorizedException ex) {
 					if ( log.isLoggable( Level.FINEST ) ){
 						log.log(Level.FINEST, "NotAuthorizedException when checking if message is to this "
 								+ "user at trying to save packet for off-line user, {0}, {1}", new Object[]{ packet, session });
-					}	
+					}
 				} catch (PacketErrorTypeException ex) {
 					log.log(Level.FINE, "Could not sent error to packet sent to offline user which storage to offline "
-							+ "store failed. Packet is error type already: {0}", packet.toStringSecure());					
+							+ "store failed. Packet is error type already: {0}", packet.toStringSecure());
 				}
 			}
 		}
@@ -215,7 +180,7 @@ public class MessageAmp
 					|| ampJID.equals(packet.getPacketFrom())) {
 				return false;
 			}
-			
+
 			try {
 				if (session == null) {
 					Packet result = packet.copyElementOnly();
@@ -223,7 +188,7 @@ public class MessageAmp
 					results.offer(result);
 					result.getElement().addAttribute(OFFLINE, "1");
 					packet.processedBy(ID);
-	
+
 					return true;
 				}
 				if (session.isUserId(packet.getStanzaTo().getBareJID())
@@ -233,16 +198,16 @@ public class MessageAmp
 					result.setPacketTo(ampJID);
 					if ( packet.getStanzaTo().getResource() != null ){
 						result.getElement().addAttribute( TO_RES, session.getResource() );
-					} 
+					}
 					results.offer(result);
 					boolean offline = !messageProcessor.hasConnectionForMessageDelivery(session);
 					if (offline) {
 						result.getElement().addAttribute(OFFLINE, "1");
 					}
 					packet.processedBy(ID);
-					return true;					
+					return true;
 //				} else {
-					// this needs to be handled in process() method so we need to allow packet 
+					// this needs to be handled in process() method so we need to allow packet
 					// to be processed in this method
 //					JID connectionId = session.getConnectionId();
 //
@@ -257,11 +222,11 @@ public class MessageAmp
 		}
 		return processed;
 	}
-	
+
 	@Override
 	public void process(Packet packet, XMPPResourceConnection session,
-			NonAuthUserRepository repo, Queue<Packet> results, Map<String, Object> settings)
-					throws XMPPException {
+						NonAuthUserRepository repo, Queue<Packet> results, Map<String, Object> settings)
+			throws XMPPException {
 		switch (packet.getElemName()) {
 			case "presence":
 				if ((offlineProcessor != null) && offlineProcessor.loadOfflineMessages(packet,
@@ -313,7 +278,7 @@ public class MessageAmp
 						if ( null != session.getBareJID() ){
 							result.getElement().addAttribute(SESSION_JID, session.getJID().toString() );
 						}
-					}					
+					}
 					result.setPacketTo(ampJID);
 					results.offer(result);
 				}
@@ -330,7 +295,7 @@ public class MessageAmp
 
 	@Override
 	public Element[] supDiscoFeatures(final XMPPResourceConnection session) {
-		return DISCO_FEATURES;
+		return offlineProcessor == null ? DISCO_FEATURES_WITHOUT_OFFLINE : DISCO_FEATURES_WITH_OFFLINE;
 	}
 
 	@Override
@@ -357,7 +322,7 @@ public class MessageAmp
 	private enum QuotaRule {
 		error,
 		drop;
-		
+
 		public static QuotaRule valueof(String name) {
 			try {
 				if (name != null)

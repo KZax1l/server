@@ -62,6 +62,7 @@ import tigase.xmpp.impl.PresenceCapabilitiesManager;
 
 import javax.script.Bindings;
 import java.io.ByteArrayInputStream;
+import java.lang.reflect.Method;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.util.*;
@@ -126,8 +127,8 @@ public class SessionManager
 	private int                              maxUserSessionsYesterday        = 0;
 	@Inject
 	private NonAuthUserRepository            naUserRepository;
-    private MaxDailyCounterQueue<Integer> maxDailyUsersSessions = new MaxDailyCounterQueue<>(31);
-    private int maxDailyUsersConnectionsWithinLastWeek = 0;
+	private MaxDailyCounterQueue<Integer> maxDailyUsersSessions = new MaxDailyCounterQueue<>(31);
+	private int maxDailyUsersConnectionsWithinLastWeek = 0;
 	@Inject
 	private SessionCloseProc                 sessionCloseProc                = null;
 	@Inject
@@ -311,8 +312,16 @@ public class SessionManager
 		if (proc != null) {
 			if (allPlugins.add(proc)) {
 				Map<String, Object> settings = new HashMap<>();
+				try {
+					Method m = proc.getClass().getDeclaredMethod("init", Map.class);
+					if (m.getAnnotation(Deprecated.class) == null) {
+						log.log(Level.WARNING, "processor " + proc.getClass().getCanonicalName() + " is using deprecated init() method!");
+						proc.init(settings);
+					}
+				} catch (NoSuchMethodException|SecurityException ex) {
+					// ignoring...
+				}
 				//settings.put("sm-jid", getComponentId());
-				proc.init(settings);
 				eventBus.registerAll(proc);
 			}
 			if (proc instanceof PresenceCapabilitiesManager.PresenceCapabilitiesListener) {
@@ -716,8 +725,8 @@ public class SessionManager
 		list.add(getName(), "Maximum user sessions today", maxUserSessionsDaily, Level.INFO);
 		list.add(getName(), "Maximum user sessions yesterday", maxUserSessionsYesterday, Level.INFO);
 
-        list.add(getName(), "Max daily users sessions count last month", maxDailyUsersSessions, Level.INFO);
-        list.add(getName(), "Max users sessions within last week", maxDailyUsersConnectionsWithinLastWeek, Level.INFO);
+		list.add(getName(), "Max daily users sessions count last month", maxDailyUsersSessions, Level.INFO);
+		list.add(getName(), "Max users sessions within last week", maxDailyUsersConnectionsWithinLastWeek, Level.INFO);
 
 		for (XMPPImplIfc plugin : allPlugins) {
 			plugin.getStatistics(list);
@@ -781,7 +790,7 @@ public class SessionManager
 			try {
 				ProcessorWorkerThread worker = new ProcessorWorkerThread();
 				ProcessingThreads<ProcessorWorkerThread> pt = new ProcessingThreads<>(worker, size, maxQueueSize,
-																					  defPluginsThreadsPool);
+						defPluginsThreadsPool);
 				workerThreads.put(defPluginsThreadsPool, pt);
 				if (isInitializationComplete()) {
 					log.log(Level.CONFIG, "Created a default thread pool: {0}", size);
@@ -1847,7 +1856,7 @@ public class SessionManager
 
 			// should not happen
 			log.log(Level.SEVERE,
-			        "exception processing presence update for session = " + session + " and packet = " + packet, ex);
+					"exception processing presence update for session = " + session + " and packet = " + packet, ex);
 		}
 	}
 
@@ -2219,8 +2228,8 @@ public class SessionManager
 			maxUserSessionsDaily = sessionsByNodeId.size();
 		}
 
-        maxDailyUsersSessions.add(maxUserSessionsDaily-1);
-        maxDailyUsersConnectionsWithinLastWeek = maxDailyUsersSessions.getMaxValueInRange(7);
+		maxDailyUsersSessions.add(maxUserSessionsDaily-1);
+		maxDailyUsersConnectionsWithinLastWeek = maxDailyUsersSessions.getMaxValueInRange(7);
 	}
 
 	/*

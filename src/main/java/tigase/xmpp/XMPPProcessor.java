@@ -68,13 +68,13 @@ import java.util.logging.Logger;
  * @version $Rev$
  */
 public abstract class XMPPProcessor
-				implements XMPPImplIfc, XMPPProcessorConcurrencyAwareIfc {
+		implements XMPPImplIfc, XMPPProcessorConcurrencyAwareIfc {
 	/** Field description */
 	protected static final String ALL_NAMES = "*";
 
 	/** Field description */
 	protected static final String[][] ALL_PATHS = {
-		{ "*" }
+			{ "*" }
 	};
 	protected static ComponentInfo cmpInfo = null;
 
@@ -145,6 +145,7 @@ public abstract class XMPPProcessor
 	}
 
 	@Override
+	@Deprecated
 	public void init(Map<String, Object> settings) throws TigaseDBException {}
 
 	@Override
@@ -184,7 +185,7 @@ public abstract class XMPPProcessor
 	 * Method description
 	 *
 	 *
-	 * 
+	 *
 	 */
 	public XMPPProcessor getInstance() {
 		return this;
@@ -243,7 +244,7 @@ public abstract class XMPPProcessor
 	//~--- methods --------------------------------------------------------------
 
 	private Authorization checkPacket(Packet packet, String[][] elemPaths,
-			String[] elemXMLNS, Set<StanzaType> types) {
+									  String[] elemXMLNS, Set<StanzaType> types) {
 		Authorization result   = null;
 		boolean       names_ok = elemPaths == ALL_PATHS;
 
