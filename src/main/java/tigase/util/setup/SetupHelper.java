@@ -29,6 +29,7 @@ import tigase.kernel.beans.selector.ServerBeanSelector;
 import tigase.kernel.core.Kernel;
 import tigase.server.ServerComponent;
 import tigase.server.xmppsession.SessionManager;
+import tigase.xmpp.BareJID;
 import tigase.xmpp.XMPPImplIfc;
 
 import java.util.*;
@@ -69,7 +70,7 @@ public class SetupHelper {
 
 	public static ConfigBuilder generateConfig(ConfigTypeEnum configType, String dbUri, boolean clusterMode, boolean acs,
 											   Optional<Set<String>> optionalComponentsOption, Optional<Set<String>> forceEnabledComponentsOptions, Optional<Set<String>> pluginsOption,
-											   String[] virtualDomains, Optional<String[]> admins,
+											   String[] virtualDomains, Optional<BareJID[]> admins,
 											   Optional<HttpSecurity> httpSecurity) {
 		ConfigBuilder builder = new ConfigBuilder().with("config-type", configType.id().toLowerCase());
 
@@ -86,17 +87,17 @@ public class SetupHelper {
 		if (pluginsOption.isPresent()) {
 			Set<String> plugins = pluginsOption.get();
 			sessManSubBeans.addAll(SetupHelper.getAvailableProcessors(SessionManager.class, XMPPImplIfc.class)
-										   .stream()
-										   .filter(def -> (def.isActive() && !plugins.contains(def.getName())) ||
-												   ((!def.isActive()) && plugins.contains(def.getName())))
-										   .map(def -> new AbstractBeanConfigurator.BeanDefinition.Builder().name(
-												   def.getName()).active(plugins.contains(def.getName())).build())
-										   .collect(Collectors.toList()));
+					.stream()
+					.filter(def -> (def.isActive() && !plugins.contains(def.getName())) ||
+							((!def.isActive()) && plugins.contains(def.getName())))
+					.map(def -> new AbstractBeanConfigurator.BeanDefinition.Builder().name(
+							def.getName()).active(plugins.contains(def.getName())).build())
+					.collect(Collectors.toList()));
 		}
 		if (acs) {
 			sessManSubBeans.add(new AbstractBeanConfigurator.BeanDefinition.Builder().name("strategy")
-										.clazz("tigase.server.cluster.strategy.OnlineUsersCachingStrategy")
-										.build());
+					.clazz("tigase.server.cluster.strategy.OnlineUsersCachingStrategy")
+					.build());
 		}
 		if (!sessManSubBeans.isEmpty()) {
 			builder.withBean(sessMan -> sessMan.name("sess-man")
@@ -104,10 +105,10 @@ public class SetupHelper {
 		}
 
 		Set<String> optionalComponents = optionalComponentsOption.orElse(SetupHelper.getAvailableComponents()
-																				 .stream()
-																				 .filter(def -> !def.isCoreComponent())
-																				 .map(def -> def.getName())
-																				 .collect(Collectors.toSet()));
+				.stream()
+				.filter(def -> !def.isCoreComponent())
+				.map(def -> def.getName())
+				.collect(Collectors.toSet()));
 		SetupHelper.getAvailableComponents()
 				.stream()
 				.filter(def -> !def.isCoreComponent())
@@ -130,8 +131,8 @@ public class SetupHelper {
 						b.name(def.getName())
 								.active(optionalComponents.contains(def.getName()))
 								.clazz((ct != null && !Arrays.asList(ct.value()).contains(configType))
-									   ? def.getClazz()
-									   : null);
+										? def.getClazz()
+										: null);
 						if ("http".equals(def.getName())) {
 							httpSecurity.ifPresent(sec -> {
 								switch (sec.restApiSecurity) {
