@@ -204,7 +204,7 @@ public class ConfigHolder {
         new ConfigWriter().write(f, props);
     }
 
-    protected void detectPathAndFormat() {
+    protected Format detectPathAndFormat() {
         String property_filenames = (String) props.remove(PROPERTY_FILENAME_PROP_KEY);
         if (property_filenames == null) {
             property_filenames = PROPERTY_FILENAME_PROP_DEF;
@@ -228,9 +228,18 @@ public class ConfigHolder {
                 try (BufferedReader reader = new BufferedReader(new FileReader(property_filename))) {
                     String line;
                     while ((line = reader.readLine()) != null) {
-                        if (line.contains("{") && !line.contains("{clusterNode}")) {
+                        if (line.startsWith("--user-db")) {
+                            break;
+                        }
+                        if (line.contains("{")) {
+                            if (line.contains("{clusterNode}"))
+                                continue;
+
+                            if (line.contains("{ call") && !(line.contains("\'{ call") || line.contains("\"{ call")))
+                                continue;
+
                             format = dsl;
-                            return;
+                            return format;
                         }
                     }
                 } catch (IOException e) {
@@ -239,6 +248,7 @@ public class ConfigHolder {
             }
         }
         format = Format.properties;
+        return format;
     }
 
     public Path getConfigFilePath() {
@@ -379,8 +389,7 @@ public class ConfigHolder {
                         });
                     }
 
-                }
-                if (k.startsWith("--user-db") || k.startsWith("--auth-db") || k.startsWith("--amp-repo")) {
+                } if (k.startsWith("--user-db") || k.startsWith("--auth-db") || k.startsWith("--amp-repo")) {
                     String domain = "default";
                     if (k.endsWith("]")) {
                         domain = k.substring(k.indexOf('[') + 1, k.length() - 1);
@@ -489,12 +498,12 @@ public class ConfigHolder {
                     toRemove.add(k);
                 }
                 if (k.startsWith("basic-conf/logging/")) {
-                    String t = k.replace("basic-conf/logging/", "");
+                    String t = k.replace("basic-conf/logging/","");
                     if (t.contains(".")) {
                         int idx = t.lastIndexOf('.');
                         if (idx > 0) {
                             String group = t.substring(0, idx);
-                            String key = t.substring(idx + 1);
+                            String key = t.substring(idx+1);
                             Map<String, Object> logging = (Map<String, Object>) toAdd.computeIfAbsent("logging", (k1) -> new HashMap<>());
                             Map<String, Object> handler = (Map<String, Object>) logging.computeIfAbsent(group, (k1) -> new HashMap<>());
                             handler.put(key, v);
@@ -568,7 +577,7 @@ public class ConfigHolder {
                 props.put("trusted", trusted.split(","));
             }
 
-            String maxQueueSize = (String) props.remove("--max-queue-size");
+            String maxQueueSize = (String)props.remove("--max-queue-size");
             if (maxQueueSize != null) {
                 props.put("max-queue-size", Integer.valueOf(maxQueueSize));
             }

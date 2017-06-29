@@ -79,7 +79,7 @@ public class OfflineMessages
 	 * processing capabilities. In case of {@code msgoffline} plugin it is
 	 * <em>presence</em> stanza */
 	private static final String[][] ELEMENTS = {
-		{ PresenceAbstract.PRESENCE_ELEMENT_NAME }, { "iq", "msgoffline" } };
+			{ PresenceAbstract.PRESENCE_ELEMENT_NAME }, { "iq", "msgoffline" } };
 	/** Field holds an array of name-spaces for stanzas which can be processed by
 	 * this plugin. In case of {@code msgoffline} plugin it is
 	 * <em>jabber:client</em> */
@@ -89,7 +89,7 @@ public class OfflineMessages
 	 * {@code msgoffline} plugin it is the same as plugin name -
 	 * <em>msgoffline</em> */
 	private static final Element[] DISCO_FEATURES = {
-		new Element( "feature", new String[] { "var" }, new String[] { "msgoffline" } ) };
+			new Element( "feature", new String[] { "var" }, new String[] { "msgoffline" } ) };
 	/** Field holds the default hostname of the machine. */
 	private static String defHost = DNSResolverFactory.getInstance().getDefaultHost();
 	/** Field holds an array for element paths for which the plugin offers message
@@ -124,7 +124,7 @@ public class OfflineMessages
 	private List<Notifier> notifiers;
 	@ConfigField(desc = "Store offline messages with mathing paths", alias = MSG_OFFLINE_STORAGE_PATHS)
 	private ElementMatcher[] offlineStorageMatchers = new ElementMatcher[0];
-	
+
 	{
 		this.formatter = new SimpleDateFormat( "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" );
 		this.formatter.setTimeZone( TimeZone.getTimeZone( "UTC" ) );
@@ -142,7 +142,7 @@ public class OfflineMessages
 		super.init(settings);
 		defHost = DNSResolverFactory.getInstance().getDefaultHost();
 	}
-	
+
 	/**
 	 * {@inheritDoc}
 	 *
@@ -153,8 +153,8 @@ public class OfflineMessages
 	 */
 	@Override
 	public void postProcess( final Packet packet, final XMPPResourceConnection conn,
-													 final NonAuthUserRepository repo, final Queue<Packet> queue,
-													 Map<String, Object> settings ) {
+							 final NonAuthUserRepository repo, final Queue<Packet> queue,
+							 Map<String, Object> settings ) {
 		if (conn == null
 				|| (packet.getElemName() == Message.ELEM_NAME && !message.hasConnectionForMessageDelivery(conn))) {
 			try {
@@ -185,7 +185,7 @@ public class OfflineMessages
 				if ( log.isLoggable( Level.FINEST ) ){
 					log.finest(
 							"UserNotFoundException at trying to save packet for off-line user."
-							+ packet );
+									+ packet );
 				}
 			} catch (NotAuthorizedException ex) {
 				if ( log.isLoggable( Level.FINEST ) ){
@@ -210,8 +210,8 @@ public class OfflineMessages
 	 */
 	@Override
 	public void process( final Packet packet, final XMPPResourceConnection conn,
-											 final NonAuthUserRepository repo, final Queue<Packet> results,
-											 final Map<String, Object> settings )
+						 final NonAuthUserRepository repo, final Queue<Packet> results,
+						 final Map<String, Object> settings )
 			throws NotAuthorizedException {
 		switch (packet.getElemName()) {
 			case tigase.server.Presence.ELEM_NAME:
@@ -276,21 +276,21 @@ public class OfflineMessages
 						results.offer(packet.okResult(msgoffline, 0));
 						break;
 					default:
-						results.offer(Authorization.BAD_REQUEST.getResponseMessage(packet, 
+						results.offer(Authorization.BAD_REQUEST.getResponseMessage(packet,
 								"Request type is incorrect", false));
 						break;
 				}
 			} else {
-				results.offer(Authorization.NOT_AUTHORIZED.getResponseMessage(packet, 
+				results.offer(Authorization.NOT_AUTHORIZED.getResponseMessage(packet,
 						"You are not authorized to access this private storage.", false));
 			}
 		} catch (TigaseDBException ex) {
 		} catch (NoConnectionIdException ex) {
 		} catch (PacketErrorTypeException ex) {
-			
+
 		}
 	}
-	
+
 	/**
 	 * Method restores all messages from repository for the JID of the current
 	 * session. All retrieved elements are then instantiated as {@code Packet}
@@ -309,7 +309,7 @@ public class OfflineMessages
 	 * @throws NotAuthorizedException
 	 */
 	public Queue<Packet> restorePacketForOffLineUser( XMPPResourceConnection conn,
-																										tigase.db.OfflineMsgRepositoryIfc repo )
+													  tigase.db.OfflineMsgRepositoryIfc repo )
 			throws UserNotFoundException, NotAuthorizedException {
 		Queue<Element> elems = repo.loadMessagesToJID( conn, true );
 
@@ -393,21 +393,21 @@ public class OfflineMessages
 
 			String from = pac.getStanzaTo().getDomain();
 			Element x = new Element( "delay", "Offline Storage - " + defHost, new String[] {
-				"from",
-				"stamp", "xmlns" }, new String[] { from, stamp, "urn:xmpp:delay" } );
+					"from",
+					"stamp", "xmlns" }, new String[] { from, stamp, "urn:xmpp:delay" } );
 
 			elem.addChild( x );
 			pac.processedBy( ID );
-			
+
 			if (repo.storeMessage( pac.getStanzaFrom(), pac.getStanzaTo(), null, elem, userRepo) ) {
-				return Authorization.AUTHORIZED;		
+				return Authorization.AUTHORIZED;
 			} else {
 				return Authorization.SERVICE_UNAVAILABLE;
 			}
 		} else {
 			if ( log.isLoggable( Level.FINEST ) ){
 				log.log( Level.FINEST, "Packet for offline user not suitable for storing: {0}",
-								 pac );
+						pac );
 			}
 		}
 
@@ -460,7 +460,7 @@ public class OfflineMessages
 	 * @return instance of {@link MsgRepositoryIfc} interface implementation.
 	 */
 	protected OfflineMsgRepositoryIfc getMsgRepoImpl( NonAuthUserRepository repo,
-																						 XMPPResourceConnection conn ) {
+													  XMPPResourceConnection conn ) {
 		if (msgRepoCls == null) {
 			return new MsgRepositoryImpl( repo, conn );
 		} else {
@@ -475,12 +475,12 @@ public class OfflineMessages
 	}
 
 	//~--- methods --------------------------------------------------------------
-	
-	/** 
+
+	/**
 	 * Method determines whether packet sent to offline user should be stored in
 	 * offline storage or not
 	 * @param pac
-	 * @return 
+	 * @return
 	 */
 	protected boolean isAllowedForOfflineStorage(Packet pac) {
 		// custom element matchers override default values so let's check
@@ -489,10 +489,10 @@ public class OfflineMessages
 			if (matcher.matches(pac))
 				return matcher.getValue();
 		}
-		
+
 		return isAllowedForOfflineStorageDefaults(pac);
 	}
-	
+
 	protected boolean isAllowedForOfflineStorageDefaults(Packet pac) {
 		StanzaType type = pac.getType();
 		switch (pac.getElemName()) {
@@ -513,16 +513,16 @@ public class OfflineMessages
 				break;
 			case "presence":
 				if ( ( type == StanzaType.subscribe ) || ( type == StanzaType.subscribed )
-						 || ( type == StanzaType.unsubscribe ) || ( type == StanzaType.unsubscribed ) )
+						|| ( type == StanzaType.unsubscribe ) || ( type == StanzaType.unsubscribed ) )
 					return true;
 				break;
 			default:
 				break;
 		}
-		
-		return false;	
+
+		return false;
 	}
-	
+
 	/**
 	 * Method determines whether offline messages should be loaded - the process
 	 * should be run only once per user session and only for available/null
@@ -549,10 +549,10 @@ public class OfflineMessages
 		if ( conn.getSessionData( ID ) != null ){
 			return false;
 		}
-		
+
 		// make sure this is broadcast presence as only in this case we should sent offline messages
 		if (packet.getStanzaTo() != null)
-			return false;		
+			return false;
 
 		// if we are using XEP-0013: Flexible offline messages retrieval then we skip loading
 		if ( conn.getCommonSessionData(FlexibleOfflineMessageRetrieval.FLEXIBLE_OFFLINE_XMLNS) != null ){
@@ -598,11 +598,11 @@ public class OfflineMessages
 	}
 
 	public static interface OfflineMsgRepositoryIfc extends tigase.db.OfflineMsgRepositoryIfc {
-		
-		void init(NonAuthUserRepository repo, XMPPResourceConnection conn);
-		
+
+		void init( NonAuthUserRepository repo, XMPPResourceConnection conn);
+
 	}
-	
+
 	//~--- inner classes --------------------------------------------------------
 	/**
 	 * Implementation of {@code MsgRepositoryIfc} interface providing basic
@@ -632,7 +632,7 @@ public class OfflineMessages
 		private MsgRepositoryImpl(NonAuthUserRepository repo, XMPPResourceConnection conn) {
 			init(repo, conn);
 		}
-		
+
 		@Override
 		public void init(NonAuthUserRepository repo, XMPPResourceConnection conn) {
 			this.repo = repo;
@@ -640,10 +640,11 @@ public class OfflineMessages
 		}
 
 		@Override
+		@Deprecated
 		public void initRepository(String conn_str, Map<String, String> map) {
 			// nothing to do here as we base on UserRepository which is already initialized
 		}
-		
+
 		//~--- get methods --------------------------------------------------------
 		@Override
 		public Element getMessageExpired( long time, boolean delete ) {
@@ -675,9 +676,9 @@ public class OfflineMessages
 				}    // end of while (elem = elems.poll() != null)
 			} catch ( NotAuthorizedException ex ) {
 				log.info( "User not authrized to retrieve offline messages, "
-									+ "this happens quite often on some installations where there"
-									+ " are a very short living client connections. They can "
-									+ "disconnect at any time. " + ex );
+						+ "this happens quite often on some installations where there"
+						+ " are a very short living client connections. They can "
+						+ "disconnect at any time. " + ex );
 			} catch ( TigaseDBException ex ) {
 				log.warning( "Error accessing database for offline message: " + ex );
 			}
@@ -689,7 +690,7 @@ public class OfflineMessages
 		public boolean storeMessage( JID from, JID to, Date expired, Element msg, NonAuthUserRepository userRepo )
 				throws UserNotFoundException {
 			repo.addOfflineDataList( to.getBareJID(), ID, "messages",
-															 new String[] { msg.toString() } );
+					new String[] { msg.toString() } );
 			return true;
 		}
 	}
@@ -762,7 +763,7 @@ public class OfflineMessages
 		private String defaultPublisher;
 
 		public void notifyNewOfflineMessage(final Packet packet, final XMPPResourceConnection conn, final Queue<Packet> queue,
-									Map<String, Object> settings) {
+											Map<String, Object> settings) {
 			if (pubSubJID == null || pubSubNode == null)
 				return;
 			final StanzaType type = packet.getType();
@@ -786,9 +787,9 @@ public class OfflineMessages
 				try {
 					if (defaultPublisher != null) {
 						Element iq = new Element("iq", new String[] { "type", "id", "to", "from" }, new String[] { "set",
-																												   "" + System.nanoTime(), pubSubJID, defaultPublisher });
+								"" + System.nanoTime(), pubSubJID, defaultPublisher });
 						Element pubsub = new Element("pubsub", new String[] { "xmlns" },
-													 new String[] { "http://jabber.org/protocol/pubsub" });
+								new String[] { "http://jabber.org/protocol/pubsub" });
 						iq.addChild(pubsub);
 						Element publish = new Element("publish", new String[] { "node" }, new String[] { this.pubSubNode });
 						pubsub.addChild(publish);

@@ -30,14 +30,14 @@ import java.util.Map;
 /**
  * Base interface which should be implemented by every repository to have one 
  * common interface
- * 
+ *
  * @author andrzej
  */
 public interface Repository {
 
 	/**
 	 * Meta created to add possibility to retrieve informations about 
- implementation of repository (ie. supported database URI)
+	 implementation of repository (ie. supported database URI)
 	 */
 	@Retention(RetentionPolicy.RUNTIME)
 	@Target(ElementType.TYPE)
@@ -67,6 +67,8 @@ public interface Repository {
 	 * call.
 	 */
 	@Deprecated
-	void initRepository(String resource_uri, Map<String, String> params) throws DBInitException;	
-	
+	default void initRepository(String resource_uri, Map<String, String> params) throws DBInitException {
+
+	}
+
 }

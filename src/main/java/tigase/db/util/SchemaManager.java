@@ -20,6 +20,7 @@ package tigase.db.util;
 
 import tigase.component.DSLBeanConfigurator;
 import tigase.component.DSLBeanConfiguratorWithBackwardCompatibility;
+import tigase.component.exceptions.RepositoryException;
 import tigase.conf.ConfigBuilder;
 import tigase.conf.ConfigReader;
 import tigase.conf.ConfigWriter;
@@ -102,7 +103,7 @@ public class SchemaManager {
             .secret()
             .build();
 
-    private CommandlineParameter CONFIG_FILE = new CommandlineParameter.Builder(null, ConfiguratorAbstract.PROPERTY_FILENAME_PROP_KEY.replace("--", ""))
+    private CommandlineParameter CONFIG_FILE = new CommandlineParameter.Builder(null, ConfiguratorAbstract.PROPERTY_FILENAME_PROP_KEY.replace("--",""))
             .defaultValue(ConfiguratorAbstract.PROPERTY_FILENAME_PROP_DEF)
             .description("Path to configuration file")
             .requireArguments(true)
@@ -136,7 +137,7 @@ public class SchemaManager {
         String scriptName = System.getProperty("scriptName");
         ParameterParser parser = new ParameterParser(true);
 
-        parser.setTasks(new Task[]{
+        parser.setTasks(new Task[] {
                 new Task.Builder().name("upgrade-schema")
                         .description("Upgrade schema of databases specified in your config file - it's not possible to specify parameters")
                         .additionalParameterSupplier(this::upgradeSchemaParametersSupplier)
@@ -247,7 +248,7 @@ public class SchemaManager {
 
         Set<String> components = getActiveNonCoreComponentNames().collect(Collectors.toSet());
 
-        changes.forEach((k, v) -> {
+        changes.forEach((k,v) -> {
             switch (k) {
                 case "+":
                     components.addAll(v);
@@ -329,14 +330,14 @@ public class SchemaManager {
 
     private List<String> prepareOutput(String title, Map<DataSourceInfo, List<SchemaManager.ResultEntry>> results) {
         List<String> output = new ArrayList<>(Arrays.asList("\t" + title));
-        results.forEach((k, v) -> {
+        results.forEach((k,v) -> {
             output.add("");
             output.add("Data source: " + k.getName() + " with uri " + k.getResourceUri());
             v.forEach(r -> {
                 output.add("\t" + r.name + "\t" + r.result);
                 if (r.result != SchemaLoader.Result.ok && r.message != null) {
                     String[] lines = r.message.split("\n");
-                    for (int i = 0; i < lines.length; i++) {
+                    for (int i=0; i<lines.length; i++) {
                         if (i == 0) {
                             output.add("\t\tMessage: " + lines[0]);
                         } else {
@@ -561,7 +562,7 @@ public class SchemaManager {
 
     private Map<DataSourceInfo, List<SchemaInfo>> collectSchemasByDataSource(Map<DataSourceInfo, List<RepoInfo>> repositoriesByDataSource) {
         Map<DataSourceInfo, List<SchemaInfo>> dataSourceSchemas = new HashMap<>();
-        for (Map.Entry<DataSourceInfo, List<RepoInfo>> entry : repositoriesByDataSource.entrySet()) {
+        for (Map.Entry<DataSourceInfo,List<RepoInfo>> entry : repositoriesByDataSource.entrySet()) {
 
             List<SchemaInfo> schemas = entry.getValue()
                     .stream()
@@ -707,7 +708,7 @@ public class SchemaManager {
                             parent.ln(bc.getBeanName(), bc.getKernel(), "service");
 
                             ((RegistrarBean) bean).register(bc.getKernel());
-                            Map<String, Object> cfg = (Map<String, Object>) config.getOrDefault(bc.getBeanName(), new HashMap<>());
+                            Map<String,Object> cfg = (Map<String, Object>) config.getOrDefault(bc.getBeanName(), new HashMap<>());
                             configurator.registerBeans(bc, bean, cfg);
                             results.addAll(crawlKernel(repositoryClasses, bc.getKernel(), configurator, cfg));
                         }
@@ -759,6 +760,12 @@ public class SchemaManager {
         }
 
         @Override
+        public void initialize(String connStr) throws RepositoryException {
+            // nothing to do
+        }
+
+        @Override
+        @Deprecated
         public void initRepository(String resource_uri, Map<String, String> params) throws DBInitException {
             // nothing to do
         }
@@ -877,7 +884,7 @@ public class SchemaManager {
 
     }
 
-    public static class Pair<K, V> {
+    public static class Pair<K,V> {
 
         private final K key;
         private final V value;

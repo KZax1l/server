@@ -42,14 +42,14 @@ import static tigase.db.AuthRepository.Meta;
 
 /**
  * Describe class TigaseAuth here.
- * <p>
- * <p>
+ *
+ *
  * Created: Sat Nov 11 22:22:04 2006
  *
  * @author <a href="mailto:artur.hefczyc@tigase.org">Artur Hefczyc</a>
  * @version $Rev$
  */
-@Meta(supportedUris = {"jdbc:[^:]+:.*"})
+@Meta( supportedUris = { "jdbc:[^:]+:.*" } )
 @Repository.SchemaId(id = Schema.SERVER_SCHEMA_ID, name = Schema.SERVER_SCHEMA_NAME)
 @Deprecated
 public class TigaseAuth implements AuthRepository, DataSourceAware<DataRepository> {
@@ -58,8 +58,8 @@ public class TigaseAuth implements AuthRepository, DataSourceAware<DataRepositor
      * Private logger for class instances.
      */
     private static final Logger log = Logger.getLogger("tigase.db.jdbc.TigaseAuth");
-    private static final String[] non_sasl_mechs = {"password"};
-    private static final String[] sasl_mechs = {"PLAIN"};
+    private static final String[] non_sasl_mechs = { "password" };
+    private static final String[] sasl_mechs = { "PLAIN" };
     private static final String INIT_DB_QUERY = "{ call TigInitdb() }";
     private static final String ADD_USER_PLAIN_PW_QUERY = "{ call TigAddUserPlainPw(?, ?) }";
     private static final String REMOVE_USER_QUERY = "{ call TigRemoveUser(?) }";
@@ -189,31 +189,33 @@ public class TigaseAuth implements AuthRepository, DataSourceAware<DataRepositor
     //~--- methods --------------------------------------------------------------
 
     @Override
-    public void setDataSource(DataRepository dataSource) {
-        data_repo = dataSource;
-    }
-
-    @Override
-    public void initRepository(final String connection_str, Map<String, String> params)
-            throws DBInitException {
+    public void setDataSource(DataRepository dataSource) throws DBInitException {
         try {
-            if (data_repo == null)
-                data_repo = RepositoryFactory.getDataRepository(null, connection_str, params);
+            data_repo = dataSource;
             data_repo.initPreparedStatement(INIT_DB_QUERY, INIT_DB_QUERY);
             data_repo.initPreparedStatement(ADD_USER_PLAIN_PW_QUERY, ADD_USER_PLAIN_PW_QUERY);
             data_repo.initPreparedStatement(REMOVE_USER_QUERY, REMOVE_USER_QUERY);
             data_repo.initPreparedStatement(GET_PASSWORD_QUERY, GET_PASSWORD_QUERY);
-            data_repo.initPreparedStatement(UPDATE_PASSWORD_PLAIN_PW_QUERY,
-                    UPDATE_PASSWORD_PLAIN_PW_QUERY);
+            data_repo.initPreparedStatement(UPDATE_PASSWORD_PLAIN_PW_QUERY, UPDATE_PASSWORD_PLAIN_PW_QUERY);
             data_repo.initPreparedStatement(USER_LOGIN_PLAIN_PW_QUERY, USER_LOGIN_PLAIN_PW_QUERY);
             data_repo.initPreparedStatement(USER_LOGOUT_QUERY, USER_LOGOUT_QUERY);
             data_repo.initPreparedStatement(USERS_COUNT_QUERY, USERS_COUNT_QUERY);
             data_repo.initPreparedStatement(USERS_DOMAIN_COUNT_QUERY, USERS_DOMAIN_COUNT_QUERY);
             data_repo.initPreparedStatement(DEF_UPDATELOGINTIME_QUERY, DEF_UPDATELOGINTIME_QUERY);
 
-            if ((params != null) && (params.get("init-db") != null)) {
-                data_repo.getPreparedStatement(null, INIT_DB_QUERY).executeQuery();
-            }
+            data_repo.getPreparedStatement(null, INIT_DB_QUERY).executeQuery();
+        } catch (Exception ex) {
+            throw new DBInitException("Failed to initialize repository " + this.getClass().getCanonicalName(), ex);
+        }
+    }
+
+    @Override
+    @Deprecated
+    public void initRepository(final String connection_str, Map<String, String> params)
+            throws DBInitException {
+        try {
+            if (data_repo == null)
+                setDataSource(RepositoryFactory.getDataRepository(null, connection_str, params));
         } catch (Exception e) {
             data_repo = null;
 

@@ -26,27 +26,17 @@ package tigase.conf;
 
 //~--- non-JDK imports --------------------------------------------------------
 
-import tigase.db.comp.RepositoryChangeListenerIfc;
+import tigase.db.DBInitException;
 import tigase.db.TigaseDBException;
-
+import tigase.db.comp.RepositoryChangeListenerIfc;
 import tigase.kernel.beans.config.ConfigField;
-import tigase.util.DataTypes;
-
-//~--- JDK imports ------------------------------------------------------------
 
 import java.io.FileWriter;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.Map;
-import java.util.Set;
-import tigase.db.DBInitException;
+
+//~--- JDK imports ------------------------------------------------------------
 
 /**
  * Created: Dec 10, 2009 2:02:41 PM
@@ -55,7 +45,7 @@ import tigase.db.DBInitException;
  * @version $Rev$
  */
 public class ConfigurationCache
-				implements ConfigRepositoryIfc {
+		implements ConfigRepositoryIfc {
 	/** Field description */
 	public static final String CONFIG_DUMP_FILE_PROP_DEF = "etc/config-dump.properties";
 
@@ -77,10 +67,10 @@ public class ConfigurationCache
 	 * we access configuration for a particular server component.
 	 */
 	private Map<String, Set<ConfigItem>> config = new LinkedHashMap<String,
-																									Set<ConfigItem>>();
+			Set<ConfigItem>>();
 	@ConfigField(desc = "File to dump configuration to")
 	private String configDumpFileName                              =
-		CONFIG_DUMP_FILE_PROP_DEF;
+			CONFIG_DUMP_FILE_PROP_DEF;
 	private String hostname                                        = null;
 	private RepositoryChangeListenerIfc<ConfigItem> repoChangeList = null;
 
@@ -88,13 +78,13 @@ public class ConfigurationCache
 
 	@Override
 	public void addRepoChangeListener(
-					RepositoryChangeListenerIfc<ConfigItem> repoChangeListener) {
+			RepositoryChangeListenerIfc<ConfigItem> repoChangeListener) {
 		this.repoChangeList = repoChangeListener;
 	}
 
 	@Override
 	public void removeRepoChangeListener(
-					RepositoryChangeListenerIfc<ConfigItem> repoChangeListener) {
+			RepositoryChangeListenerIfc<ConfigItem> repoChangeListener) {
 		this.repoChangeList = null;
 	}
 
@@ -155,7 +145,7 @@ public class ConfigurationCache
 			addItem(compName, item);
 		} else {
 			throw new IllegalArgumentException("You have to provide a key with at least" +
-																				 " 'component_name/key_name': " + key);
+					" 'component_name/key_name': " + key);
 		}
 	}
 
@@ -177,13 +167,13 @@ public class ConfigurationCache
 
 	@Override
 	public void destroy() {
-		// Nothing to do now, maybe later we would add some logic here to move 
+		// Nothing to do now, maybe later we would add some logic here to move
 		// deinitialization of config repository here - added to implement all methods
 		// needed by ComponentRepository interface which was extended while
 		// implementing support for autodiscovery based on URI and adding
 		// more flexibility in use of repositories
 	}
-	
+
 	//~--- get methods ----------------------------------------------------------
 
 	@Override
@@ -263,7 +253,7 @@ public class ConfigurationCache
 			return getItem(compName, nodeName, keyName);
 		} else {
 			throw new IllegalArgumentException("You have to provide a key with at least" +
-																				 " 'component_name/key_name': " + key);
+					" 'component_name/key_name': " + key);
 		}
 	}
 
@@ -296,7 +286,7 @@ public class ConfigurationCache
 
 	@Override
 	public Map<String, Object> getProperties(String compName)
-					throws ConfigurationException {
+			throws ConfigurationException {
 
 		// It must not return a null value, even if configuration for the
 		// component does not exist yet, it has to initialized to create new one.
@@ -322,18 +312,19 @@ public class ConfigurationCache
 	//~--- methods --------------------------------------------------------------
 
 	@Override
+	@Deprecated
 	public void initRepository(String resource_uri, Map<String, String> params) throws DBInitException {
 		// Nothing to do..
-	}	
-	
+	}
+
 	@Override
 	public Iterator<ConfigItem> iterator() {
 		try {
 			Collection<ConfigItem> items = allItems();
 
 			return (items != null)
-						 ? items.iterator()
-						 : null;
+					? items.iterator()
+					: null;
 		} catch (TigaseDBException ex) {
 			log.log(Level.WARNING, "Problem accessing repository: ", ex);
 
@@ -343,7 +334,7 @@ public class ConfigurationCache
 
 	@Override
 	public void putProperties(String compName, Map<String, Object> props)
-					throws ConfigurationException {
+			throws ConfigurationException {
 		for (Map.Entry<String, Object> entry : props.entrySet()) {
 			ConfigItem item = new ConfigItem();
 
@@ -450,7 +441,7 @@ public class ConfigurationCache
 			}
 		} else {
 			log.log(Level.WARNING, "Dumping server configuration is OFF: {0}",
-							configDumpFileName);
+					configDumpFileName);
 		}
 	}
 
@@ -458,8 +449,8 @@ public class ConfigurationCache
 
 	private boolean isOff(String str) {
 		return (str == null) || str.trim().isEmpty() || str.equalsIgnoreCase("off") ||
-					 str.equalsIgnoreCase("none") || str.equalsIgnoreCase("false") ||
-					 str.equalsIgnoreCase("no");
+				str.equalsIgnoreCase("none") || str.equalsIgnoreCase("false") ||
+				str.equalsIgnoreCase("no");
 	}
 
 	//~--- methods --------------------------------------------------------------

@@ -21,6 +21,7 @@
  */
 
 
+
 package tigase.db;
 
 //~--- non-JDK imports --------------------------------------------------------
@@ -42,8 +43,8 @@ import java.util.logging.Logger;
 
 /**
  * Describe class AuthRepositoryImpl here.
- * <p>
- * <p>
+ *
+ *
  * Created: Sat Nov 11 21:46:50 2006
  *
  * @author <a href="mailto:artur.hefczyc@tigase.org">Artur Hefczyc</a>
@@ -51,20 +52,16 @@ import java.util.logging.Logger;
  */
 public class AuthRepositoryImpl
         implements AuthRepository {
-    /**
-     * Field description
-     */
+    /** Field description */
     protected static final Logger log = Logger.getLogger(
             "tigase.db.UserAuthRepositoryImpl");
 
-    /**
-     * Field description
-     */
-    protected static final String DISABLED_KEY = "disabled";
+    /** Field description */
+    protected static final String DISABLED_KEY   = "disabled";
     protected static final String ACCOUNT_STATUS_KEY = "account_status";
-    protected static final String PASSWORD_KEY = "password";
-    private static final String[] non_sasl_mechs = {"password", "digest"};
-    private static final String[] sasl_mechs = {"PLAIN", "DIGEST-MD5", "CRAM-MD5"};
+    protected static final String PASSWORD_KEY   = "password";
+    private static final String[] non_sasl_mechs = { "password", "digest" };
+    private static final String[] sasl_mechs     = { "PLAIN", "DIGEST-MD5", "CRAM-MD5" };
 
     //~--- fields ---------------------------------------------------------------
 
@@ -77,6 +74,7 @@ public class AuthRepositoryImpl
 
     /**
      * Creates a new <code>AuthRepositoryImpl</code> instance.
+     *
      *
      * @param repo
      */
@@ -134,13 +132,12 @@ public class AuthRepositoryImpl
     }
 
     @Override
+    @Deprecated
     public void initRepository(final String string, Map<String, String> params)
-            throws DBInitException {
-    }
+            throws DBInitException {}
 
     @Override
-    public void logout(BareJID user) {
-    }
+    public void logout(BareJID user) {}
 
     @Override
     public boolean otherAuth(final Map<String, Object> props)
@@ -157,8 +154,8 @@ public class AuthRepositoryImpl
             return saslAuth(props);
         }    // end of if (proto.equals(PROTOCOL_VAL_SASL))
         if (proto.equals(PROTOCOL_VAL_NONSASL)) {
-            String password = (String) props.get(PASSWORD_KEY);
-            BareJID user_id = (BareJID) props.get(USER_ID_KEY);
+            String  password = (String) props.get(PASSWORD_KEY);
+            BareJID user_id  = (BareJID) props.get(USER_ID_KEY);
 
             if (password != null) {
                 return plainAuth(user_id, password);
@@ -181,7 +178,7 @@ public class AuthRepositoryImpl
     public boolean plainAuth(BareJID user, final String password)
             throws UserNotFoundException, TigaseDBException {
         if (log.isLoggable(Level.FINEST)) {
-            log.log(Level.FINEST, "plainAuth: {0}:{1}", new Object[]{user, password});
+            log.log(Level.FINEST, "plainAuth: {0}:{1}", new Object[] { user, password });
         }
 
         String db_password = getPassword(user);
@@ -272,7 +269,7 @@ public class AuthRepositoryImpl
             }    // end of if (ss == null)
 
             String data_str = (String) props.get(DATA_KEY);
-            byte[] in_data = ((data_str != null)
+            byte[] in_data  = ((data_str != null)
                     ? Base64.decode(data_str)
                     : new byte[0]);
 
@@ -325,8 +322,8 @@ public class AuthRepositoryImpl
                     log.finest("Callback: " + callbacks[i].getClass().getSimpleName());
                 }
                 if (callbacks[i] instanceof RealmCallback) {
-                    RealmCallback rc = (RealmCallback) callbacks[i];
-                    String realm = (String) options.get(REALM_KEY);
+                    RealmCallback rc    = (RealmCallback) callbacks[i];
+                    String        realm = (String) options.get(REALM_KEY);
 
                     if (realm != null) {
                         rc.setText(realm);
@@ -336,8 +333,8 @@ public class AuthRepositoryImpl
                     }
                 } else {
                     if (callbacks[i] instanceof NameCallback) {
-                        NameCallback nc = (NameCallback) callbacks[i];
-                        String user_name = nc.getName();
+                        NameCallback nc        = (NameCallback) callbacks[i];
+                        String       user_name = nc.getName();
 
                         if (user_name == null) {
                             user_name = nc.getDefaultName();
@@ -364,8 +361,8 @@ public class AuthRepositoryImpl
                         } else {
                             if (callbacks[i] instanceof AuthorizeCallback) {
                                 AuthorizeCallback authCallback = ((AuthorizeCallback) callbacks[i]);
-                                String authenId = authCallback.getAuthenticationID();
-                                String authorId = authCallback.getAuthorizationID();
+                                String            authenId     = authCallback.getAuthenticationID();
+                                String            authorId     = authCallback.getAuthorizationID();
 
                                 if (log.isLoggable(Level.FINEST)) {
                                     log.finest("AuthorizeCallback: authenId: " + authenId);

@@ -25,6 +25,7 @@ package tigase.db.jdbc;
 //~--- non-JDK imports --------------------------------------------------------
 
 import tigase.db.*;
+import tigase.kernel.beans.config.ConfigField;
 import tigase.util.Algorithms;
 import tigase.util.Base64;
 import tigase.util.TigaseStringprepException;
@@ -53,42 +54,42 @@ import static tigase.db.AuthRepository.Meta;
  * The user authentication connector allows for customized SQL queries to be
  * used. Queries are defined in the configuration file and they can be either
  * plain SQL queries or stored procedures.
- * <p>
+ *
  * If the query starts with characters: <code>{ call</code> then the server
  * assumes this is a stored procedure call, otherwise it is executed as a plain
  * SQL query. Each configuration value is stripped from white characters on both
  * ends before processing.
- * <p>
+ *
  * Please don't use semicolon <code>';'</code> at the end of the query as many
  * JDBC drivers get confused and the query may not work for unknown obvious
  * reason.
- * <p>
+ *
  * Some queries take arguments. Arguments are marked by question marks
  * <code>'?'</code> in the query. Refer to the configuration parameters
  * description for more details about what parameters are expected in each
  * query.
- * <p>
+ *
  * Example configuration.
- * <p>
+ *
  * The first example shows how to put a stored procedure as a query with 2
  * required parameters.
- * <p>
+ *
  * <pre>
  * add-user-query={ call TigAddUserPlainPw(?, ?) }
  * </pre>
- * <p>
+ *
  * The same query with plain SQL parameters instead:
- * <p>
+ *
  * <pre>
  * add-user-query=insert into users (user_id, password) values (?, ?)
  * </pre>
- * <p>
+ *
  * Created: Sat Nov 11 22:22:04 2006
  *
  * @author <a href="mailto:artur.hefczyc@tigase.org">Artur Hefczyc</a>
  * @version $Rev$
  */
-@Meta(isDefault = true, supportedUris = {"jdbc:[^:]+:.*"})
+@Meta( isDefault=true, supportedUris = { "jdbc:[^:]+:.*" } )
 @Repository.SchemaId(id = Schema.SERVER_SCHEMA_ID, name = Schema.SERVER_SCHEMA_NAME)
 public class TigaseCustomAuth implements AuthRepository, DataSourceAware<DataRepository> {
 
@@ -99,11 +100,11 @@ public class TigaseCustomAuth implements AuthRepository, DataSourceAware<DataRep
 
     /**
      * Query executing periodically to ensure active connection with the database.
-     * <p>
+     *
      * Takes no arguments.
-     * <p>
+     *
      * Example query:
-     * <p>
+     *
      * <pre>
      * select 1
      * </pre>
@@ -112,11 +113,11 @@ public class TigaseCustomAuth implements AuthRepository, DataSourceAware<DataRep
 
     /**
      * Database initialization query which is run after the server is started.
-     * <p>
+     *
      * Takes no arguments.
-     * <p>
+     *
      * Example query:
-     * <p>
+     *
      * <pre>
      * update tig_users set online_status = 0
      * </pre>
@@ -125,11 +126,11 @@ public class TigaseCustomAuth implements AuthRepository, DataSourceAware<DataRep
 
     /**
      * Query adding a new user to the database.
-     * <p>
+     *
      * Takes 2 arguments: <code>(user_id (JID), password)</code>
-     * <p>
+     *
      * Example query:
-     * <p>
+     *
      * <pre>
      * insert into tig_users (user_id, user_pw) values (?, ?)
      * </pre>
@@ -138,11 +139,11 @@ public class TigaseCustomAuth implements AuthRepository, DataSourceAware<DataRep
 
     /**
      * Removes a user from the database.
-     * <p>
+     *
      * Takes 1 argument: <code>(user_id (JID))</code>
-     * <p>
+     *
      * Example query:
-     * <p>
+     *
      * <pre>
      * delete from tig_users where user_id = ?
      * </pre>
@@ -151,11 +152,11 @@ public class TigaseCustomAuth implements AuthRepository, DataSourceAware<DataRep
 
     /**
      * Retrieves user password from the database for given user_id (JID).
-     * <p>
+     *
      * Takes 1 argument: <code>(user_id (JID))</code>
-     * <p>
+     *
      * Example query:
-     * <p>
+     *
      * <pre>
      * select user_pw from tig_users where user_id = ?
      * </pre>
@@ -164,11 +165,11 @@ public class TigaseCustomAuth implements AuthRepository, DataSourceAware<DataRep
 
     /**
      * Updates (changes) password for a given user_id (JID).
-     * <p>
+     *
      * Takes 2 arguments: <code>(password, user_id (JID))</code>
-     * <p>
+     *
      * Example query:
-     * <p>
+     *
      * <pre>
      * update tig_users set user_pw = ? where user_id = ?
      * </pre>
@@ -180,19 +181,19 @@ public class TigaseCustomAuth implements AuthRepository, DataSourceAware<DataRep
      * purpose. This is an alternative way to a method requiring retrieving user
      * password. Therefore at least one of those queries must be defined:
      * <code>user-login-query</code> or <code>get-password-query</code>.
-     * <p>
+     *
      * If both queries are defined then <code>user-login-query</code> is used.
      * Normally this method should be only used with plain text password
      * authentication or sasl-plain.
-     * <p>
+     *
      * The Tigase server expects a result set with user_id to be returned from the
      * query if login is successful and empty results set if the login is
      * unsuccessful.
-     * <p>
+     *
      * Takes 2 arguments: <code>(user_id (JID), password)</code>
-     * <p>
+     *
      * Example query:
-     * <p>
+     *
      * <pre>
      * select user_id from tig_users where (user_id = ?) AND (user_pw = ?)
      * </pre>
@@ -202,11 +203,11 @@ public class TigaseCustomAuth implements AuthRepository, DataSourceAware<DataRep
     /**
      * This query is called when user logs out or disconnects. It can record that
      * event in the database.
-     * <p>
+     *
      * Takes 1 argument: <code>(user_id (JID))</code>
-     * <p>
+     *
      * Example query:
-     * <p>
+     *
      * <pre>
      * update tig_users, set online_status = online_status - 1 where user_id = ?
      * </pre>
@@ -215,17 +216,13 @@ public class TigaseCustomAuth implements AuthRepository, DataSourceAware<DataRep
 
     public static final String DEF_UPDATELOGINTIME_KEY = "update-login-time-query";
 
-    /**
-     * Field description
-     */
+    /** Field description */
     public static final String DEF_USERS_COUNT_KEY = "users-count-query";
 
-    /**
-     * Field description
-     */
+    /** Field description */
     public static final String DEF_USERS_DOMAIN_COUNT_KEY = "" + "users-domain-count-query";
 
-    public static final String DEF_LISTDISABLEDACCOUNTS_KEY = "users-list-disabled-accounts-query";
+    public static final String DEF_LISTDISABLEDACCOUNTS_KEY= "users-list-disabled-accounts-query";
 
     @Deprecated
     public static final String DEF_DISABLEACCOUNT_KEY = "user-disable-account-query";
@@ -250,7 +247,7 @@ public class TigaseCustomAuth implements AuthRepository, DataSourceAware<DataRep
      * Comma separated list of SASL authentication mechanisms. Possible mechanisms
      * are all mechanisms supported by Java implementation. The most common are:
      * <code>PLAIN</code>, <code>DIGEST-MD5</code>, <code>CRAM-MD5</code>.
-     * <p>
+     *
      * "Non-PLAIN" mechanisms will work only with the
      * <code>get-password-query</code> active and only when passwords are stored
      * in plain text format in the database.
@@ -259,60 +256,36 @@ public class TigaseCustomAuth implements AuthRepository, DataSourceAware<DataRep
 
     public static final String NO_QUERY = "none";
 
-    /**
-     * Field description
-     */
+    /** Field description */
     public static final String DEF_INITDB_QUERY = "{ call TigInitdb() }";
 
-    /**
-     * Field description
-     */
+    /** Field description */
     public static final String DEF_ADDUSER_QUERY = "{ call TigAddUserPlainPw(?, ?) }";
 
-    /**
-     * Field description
-     */
+    /** Field description */
     public static final String DEF_DELUSER_QUERY = "{ call TigRemoveUser(?) }";
 
-    /**
-     * Field description
-     */
+    /** Field description */
     public static final String DEF_GETPASSWORD_QUERY = "{ call TigGetPassword(?) }";
 
-    /**
-     * Field description
-     */
+    /** Field description */
     public static final String DEF_UPDATEPASSWORD_QUERY =
             "{ call TigUpdatePasswordPlainPwRev(?, ?) }";
 
-    /**
-     * Field description
-     */
+    /** Field description */
     public static final String DEF_USERLOGIN_QUERY = "{ call TigUserLoginPlainPw(?, ?) }";
 
-    /**
-     * Field description
-     */
+    /** Field description */
     public static final String DEF_USERLOGOUT_QUERY = "{ call TigUserLogout(?) }";
 
-    /**
-     * Field description
-     */
+    /** Field description */
     public static final String DEF_USERS_COUNT_QUERY = "{ call TigAllUsersCount() }";
 
-    /**
-     * Field description
-     */
+    /** Field description */
     public static final String DEF_USERS_DOMAIN_COUNT_QUERY = ""
             + "select count(*) from tig_users where user_id like ?";
 
     public static final String DEF_LISTDISABLEDACCOUNTS_QUERY = "{ call TigDisabledAccounts() }";
-
-    @Deprecated
-    public static final String DEF_DISABLEACCOUNT_QUERY = "{ call TigDisableAccount(?) }";
-
-    @Deprecated
-    public static final String DEF_ENABLEACCOUNT_QUERY = "{ call TigEnableAccount(?) }";
 
     public static final String DEF_UPDATEACCOUNTSTATUS_QUERY = "{ call TigUpdateAccountStatus(?, ?) }";
 
@@ -320,49 +293,54 @@ public class TigaseCustomAuth implements AuthRepository, DataSourceAware<DataRep
 
     private static final String DEF_UPDATELOGINTIME_QUERY = "{ call TigUpdateLoginTime(?) }";
 
-    /**
-     * Field description
-     */
+    /** Field description */
     public static final String DEF_NONSASL_MECHS = "password";
 
-    /**
-     * Field description
-     */
+    /** Field description */
     public static final String DEF_SASL_MECHS = "PLAIN";
 
-    /**
-     * Field description
-     */
+    /** Field description */
     public static final String SP_STARTS_WITH = "{ call";
 
     // ~--- fields ---------------------------------------------------------------
 
     private DataRepository data_repo = null;
+    @ConfigField(desc = "Database initialization query which is run after the server is started", alias = DEF_INITDB_KEY)
     private String initdb_query = DEF_INITDB_QUERY;
+    @ConfigField(desc = "Retrieves user password from the database for given user_id (JID)", alias = DEF_GETPASSWORD_KEY)
     private String getpassword_query = DEF_GETPASSWORD_QUERY;
+    @ConfigField(desc = "Removes a user from the database", alias = DEF_DELUSER_KEY)
     private String deluser_query = DEF_DELUSER_QUERY;
+    @ConfigField(desc = "Query adding a new user to the database", alias = DEF_ADDUSER_KEY)
     private String adduser_query = DEF_ADDUSER_QUERY;
+    @ConfigField(desc = "Updates (changes) password for a given user_id (JID)", alias = DEF_UPDATEPASSWORD_KEY)
     private String updatepassword_query = DEF_UPDATEPASSWORD_QUERY;
+    @ConfigField(desc = "Performs user login", alias = DEF_USERLOGIN_KEY)
     private String userlogin_query = DEF_USERLOGIN_QUERY;
+    @ConfigField(desc = "Count users for domain", alias = DEF_USERS_DOMAIN_COUNT_KEY)
     private String userdomaincount_query = DEF_USERS_DOMAIN_COUNT_QUERY;
+    @ConfigField(desc = "Lists disabled accounts", alias = DEF_LISTDISABLEDACCOUNTS_KEY)
     private String listdisabledaccounts_query = DEF_LISTDISABLEDACCOUNTS_QUERY;
-    @Deprecated
-    private String disableaccount_query = DEF_DISABLEACCOUNT_QUERY;
-    @Deprecated
-    private String enableaccount_query = DEF_ENABLEACCOUNT_QUERY;
+    @ConfigField(desc = "Checks account status", alias = DEF_ACCOUNTSTATUS_KEY)
     private String accountstatus_query = DEF_ACCOUNTSTATUS_QUERY;
+    @ConfigField(desc = "Updates (changes) account status", alias = DEF_UPDATEACCOUNTSTATUS_KEY)
     private String updateaccountstatus_query = DEF_UPDATEACCOUNTSTATUS_QUERY;
+    @ConfigField(desc = "Updates last login/logout timestamps", alias = DEF_UPDATELOGINTIME_KEY)
     private String updatelastlogin_query = DEF_UPDATELOGINTIME_QUERY;
 
 
     // It is better just to not call the query if it is not defined by the user
     // By default it is null then and not called.
+    @ConfigField(desc = "Performs user logout", alias = DEF_USERLOGOUT_KEY)
     private String userlogout_query = null;
+    @ConfigField(desc = "Counts users", alias = DEF_USERS_COUNT_KEY)
     private String userscount_query = DEF_USERS_COUNT_QUERY;
     private boolean userlogin_active = false;
 
     // private String userlogout_query = DEF_USERLOGOUT_QUERY;
+    @ConfigField(desc = "Comma separated list of SASL authentication mechanisms", alias = DEF_SASL_MECHS_KEY)
     private String[] sasl_mechs = DEF_SASL_MECHS.split(",");
+    @ConfigField(desc = "Comma separated list of NON-SASL authentication mechanisms", alias = DEF_NONSASL_MECHS_KEY)
     private String[] nonsasl_mechs = DEF_NONSASL_MECHS.split(",");
 
     // ~--- methods --------------------------------------------------------------
@@ -421,8 +399,8 @@ public class TigaseCustomAuth implements AuthRepository, DataSourceAware<DataRep
                 final String digest_db_pass = Algorithms.hexDigest(id, db_password, alg);
 
                 if (log.isLoggable(Level.FINEST)) {
-                    log.log(Level.FINEST, "Comparing passwords, given: {0}, db: {1}", new Object[]{
-                            digest, digest_db_pass});
+                    log.log(Level.FINEST, "Comparing passwords, given: {0}, db: {1}", new Object[] {
+                            digest, digest_db_pass });
                 }
 
                 return digest.equals(digest_db_pass);
@@ -517,8 +495,58 @@ public class TigaseCustomAuth implements AuthRepository, DataSourceAware<DataRep
 
     // ~--- methods --------------------------------------------------------------
     @Override
-    public void setDataSource(DataRepository dataSource) {
-        data_repo = dataSource;
+    public void setDataSource(DataRepository data_repo) throws DBInitException {
+        try {
+            if (initdb_query != null) {
+                data_repo.initPreparedStatement(initdb_query, initdb_query);
+            }
+            if ((adduser_query != null)) {
+                data_repo.initPreparedStatement(adduser_query, adduser_query);
+            }
+            if ((deluser_query != null)) {
+                data_repo.initPreparedStatement(deluser_query, deluser_query);
+            }
+            if ((getpassword_query != null)) {
+                data_repo.initPreparedStatement(getpassword_query, getpassword_query);
+            }
+            if ((updatepassword_query != null)) {
+                data_repo.initPreparedStatement(updatepassword_query, updatepassword_query);
+            }
+            if (userlogin_query != null) {
+                data_repo.initPreparedStatement(userlogin_query, userlogin_query);
+                userlogin_active = true;
+            }
+            if ((userlogout_query != null)) {
+                data_repo.initPreparedStatement(userlogout_query, userlogout_query);
+            }
+            if (updatelastlogin_query != null) {
+                data_repo.initPreparedStatement(updatelastlogin_query, updatelastlogin_query);
+            }
+            if ((userscount_query != null)) {
+                data_repo.initPreparedStatement(userscount_query, userscount_query);
+            }
+            if ((userdomaincount_query != null)) {
+                data_repo.initPreparedStatement(userdomaincount_query, userdomaincount_query);
+            }
+            if (listdisabledaccounts_query != null) {
+                data_repo.initPreparedStatement(listdisabledaccounts_query, listdisabledaccounts_query);
+            }
+            if (updateaccountstatus_query != null) {
+                data_repo.initPreparedStatement(updateaccountstatus_query, updateaccountstatus_query);
+            }
+            if (accountstatus_query != null) {
+                data_repo.initPreparedStatement(accountstatus_query, accountstatus_query);
+            }
+
+            this.data_repo = data_repo;
+
+            if (initdb_query != null) {
+                initDb();
+            }
+        } catch (SQLException ex) {
+            data_repo = null;
+            throw new DBInitException("Could not initialize TigaseCustomAuth instance", ex);
+        }
     }
 
     @Override
@@ -551,99 +579,44 @@ public class TigaseCustomAuth implements AuthRepository, DataSourceAware<DataRep
     }
 
     @Override
+    @Deprecated
     public void initRepository(final String connection_str, Map<String, String> params) throws DBInitException {
         try {
-            if (data_repo == null) {
-                data_repo = RepositoryFactory.getDataRepository(null, connection_str, params);
-            }
             initdb_query = getParamWithDef(params, DEF_INITDB_KEY, DEF_INITDB_QUERY);
-
-            if (initdb_query != null) {
-                data_repo.initPreparedStatement(initdb_query, initdb_query);
-            }
 
             adduser_query = getParamWithDef(params, DEF_ADDUSER_KEY, DEF_ADDUSER_QUERY);
 
-            if ((adduser_query != null)) {
-                data_repo.initPreparedStatement(adduser_query, adduser_query);
-            }
-
             deluser_query = getParamWithDef(params, DEF_DELUSER_KEY, DEF_DELUSER_QUERY);
-
-            if ((deluser_query != null)) {
-                data_repo.initPreparedStatement(deluser_query, deluser_query);
-            }
 
             getpassword_query = getParamWithDef(params, DEF_GETPASSWORD_KEY, DEF_GETPASSWORD_QUERY);
 
-            if ((getpassword_query != null)) {
-                data_repo.initPreparedStatement(getpassword_query, getpassword_query);
-            }
-
             updatepassword_query = getParamWithDef(params, DEF_UPDATEPASSWORD_KEY, DEF_UPDATEPASSWORD_QUERY);
 
-            if ((updatepassword_query != null)) {
-                data_repo.initPreparedStatement(updatepassword_query, updatepassword_query);
-            }
-
             userlogin_query = getParamWithDef(params, DEF_USERLOGIN_KEY, DEF_USERLOGIN_QUERY);
-            if (userlogin_query != null) {
-                data_repo.initPreparedStatement(userlogin_query, userlogin_query);
-                userlogin_active = true;
-            }
 
             userlogout_query = getParamWithDef(params, DEF_USERLOGOUT_KEY, DEF_USERLOGOUT_QUERY);
 
-            if ((userlogout_query != null)) {
-                data_repo.initPreparedStatement(userlogout_query, userlogout_query);
-            }
-
             updatelastlogin_query = getParamWithDef(params, DEF_UPDATELOGINTIME_KEY, DEF_UPDATELOGINTIME_QUERY);
-            if (updatelastlogin_query != null) {
-                data_repo.initPreparedStatement(updatelastlogin_query, updatelastlogin_query);
-            }
 
             userscount_query = getParamWithDef(params, DEF_USERS_COUNT_KEY, DEF_USERS_COUNT_QUERY);
 
-            if ((userscount_query != null)) {
-                data_repo.initPreparedStatement(userscount_query, userscount_query);
-            }
-
             userdomaincount_query = getParamWithDef(params, DEF_USERS_DOMAIN_COUNT_KEY, DEF_USERS_DOMAIN_COUNT_QUERY);
-
-            if ((userdomaincount_query != null)) {
-                data_repo.initPreparedStatement(userdomaincount_query, userdomaincount_query);
-            }
 
             listdisabledaccounts_query = getParamWithDef(params, DEF_LISTDISABLEDACCOUNTS_KEY,
                     DEF_LISTDISABLEDACCOUNTS_QUERY);
-            if (listdisabledaccounts_query != null) {
-                data_repo.initPreparedStatement(listdisabledaccounts_query, listdisabledaccounts_query);
-            }
-
-            disableaccount_query = getParamWithDef(params, DEF_DISABLEACCOUNT_KEY, DEF_DISABLEACCOUNT_QUERY);
-            if (disableaccount_query != null) {
-                data_repo.initPreparedStatement(disableaccount_query, disableaccount_query);
-            }
-
-            enableaccount_query = getParamWithDef(params, DEF_ENABLEACCOUNT_KEY, DEF_ENABLEACCOUNT_QUERY);
-            if (enableaccount_query != null) {
-                data_repo.initPreparedStatement(enableaccount_query, enableaccount_query);
-            }
 
             updateaccountstatus_query = getParamWithDef(params, DEF_UPDATEACCOUNTSTATUS_KEY,
                     DEF_UPDATEACCOUNTSTATUS_QUERY);
-            if (updateaccountstatus_query != null) {
-                data_repo.initPreparedStatement(updateaccountstatus_query, updateaccountstatus_query);
-            }
 
             accountstatus_query = getParamWithDef(params, DEF_ACCOUNTSTATUS_KEY, DEF_ACCOUNTSTATUS_QUERY);
-            if (accountstatus_query != null) {
-                data_repo.initPreparedStatement(accountstatus_query, accountstatus_query);
-            }
 
             nonsasl_mechs = getParamWithDef(params, DEF_NONSASL_MECHS_KEY, DEF_NONSASL_MECHS).split(",");
             sasl_mechs = getParamWithDef(params, DEF_SASL_MECHS_KEY, DEF_SASL_MECHS).split(",");
+
+            if (data_repo == null) {
+                DataRepository dataRepo= RepositoryFactory.getDataRepository(null, connection_str, params);
+                setDataSource(dataRepo);
+            }
 
             if ((params != null) && (params.get("init-db") != null)) {
                 initDb();
@@ -798,12 +771,12 @@ public class TigaseCustomAuth implements AuthRepository, DataSourceAware<DataRep
         String result = params.get(key);
 
         if (result != null) {
-            log.log(Level.CONFIG, "Custom query loaded for ''{0}'': ''{1}''", new Object[]{
-                    key, result});
+            log.log(Level.CONFIG, "Custom query loaded for ''{0}'': ''{1}''", new Object[] {
+                    key, result });
         } else {
             result = def;
-            log.log(Level.CONFIG, "Default query loaded for ''{0}'': ''{1}''", new Object[]{
-                    key, def});
+            log.log(Level.CONFIG, "Default query loaded for ''{0}'': ''{1}''", new Object[] {
+                    key, def });
         }
 
         if (result != null) {
@@ -818,7 +791,7 @@ public class TigaseCustomAuth implements AuthRepository, DataSourceAware<DataRep
     }
 
     @Override
-    public String getPassword(BareJID user) throws UserNotFoundException, TigaseDBException {
+    public String getPassword(BareJID user) throws UserNotFoundException, TigaseDBException  {
         if (getpassword_query == null) {
             return null;
         }

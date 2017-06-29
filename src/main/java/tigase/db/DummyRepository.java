@@ -24,6 +24,7 @@ package tigase.db;
 
 //~--- non-JDK imports --------------------------------------------------------
 
+import tigase.component.exceptions.RepositoryException;
 import tigase.xmpp.BareJID;
 
 //~--- JDK imports ------------------------------------------------------------
@@ -47,15 +48,10 @@ import java.util.Map;
  * @version $Rev$
  */
 @Repository.Meta( supportedUris = { "dummy" } )
-public class DummyRepository implements Repository, DataSource, DataSourcePool, UserRepository, AuthRepository {
+public class DummyRepository implements Repository, DataSource, UserRepository, AuthRepository {
 
 	@Override
 	public void addDataList(BareJID user, String subnode, String key, String[] list) {}
-
-	@Override
-	public void addRepo(Repository repo) {
-
-	}
 
 	@Override
 	public void addUser(BareJID user) {}
@@ -164,6 +160,12 @@ public class DummyRepository implements Repository, DataSource, DataSourcePool, 
 	//~--- methods --------------------------------------------------------------
 
 	@Override
+	public void initialize(String connStr) throws RepositoryException {
+		// nothing to do
+	}
+
+	@Override
+	@Deprecated
 	public void initRepository(String string, Map<String, String> params) {}
 
 	@Override
@@ -227,12 +229,12 @@ public class DummyRepository implements Repository, DataSource, DataSourcePool, 
 		// TODO Auto-generated method stub
 		return null;
 	}
-	
+
 	@Override
 	public boolean isUserDisabled(BareJID user) throws UserNotFoundException, TigaseDBException {
 		return false;
 	}
-	
+
 	@Override
 	public void setUserDisabled(BareJID user, Boolean value) throws UserNotFoundException, TigaseDBException {
 		throw new TigaseDBException("Feature not supported");

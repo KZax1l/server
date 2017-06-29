@@ -64,9 +64,9 @@ public abstract class MsgRepository<T,S extends DataSource> implements MsgReposi
 	public static final String MSGS_STORE_LIMIT_KEY = "store-limit";
 	private static final String MSGS_USER_STORE_LIMIT_ENABLE_KEY = "user-store-limit-enable";
 	private static final String NULL_STR = "NULL";
-	
+
 	protected static final int MAX_QUEUE_SIZE = 1000;
-	
+
 	private static final Map<String, MsgRepositoryIfc> repos =
 			new ConcurrentSkipListMap<String, MsgRepositoryIfc>();
 	private ReentrantLock expiredMessagesLock;
@@ -77,26 +77,26 @@ public abstract class MsgRepository<T,S extends DataSource> implements MsgReposi
 
 	public enum MSG_TYPES { none(0), message(1), presence(2);
 
-    private final int numVal;
+		private final int numVal;
 
-    MSG_TYPES(int numVal) {
-        this.numVal = numVal;
-    }
+		MSG_TYPES(int numVal) {
+			this.numVal = numVal;
+		}
 
-    public int getNumVal() {
-        return numVal;
-    }
+		public int getNumVal() {
+			return numVal;
+		}
 
-    public static MSG_TYPES getFromInt(int type) {
-        switch (type) {
-        case 1:
-            return message;
-        case 2:
-            return presence;
-        case 0:
+		public static MSG_TYPES getFromInt(int type) {
+			switch (type) {
+				case 1:
+					return message;
+				case 2:
+					return presence;
+				case 0:
 				default:
-            return none;
-        }
+					return none;
+			}
 		}
 
 	};
@@ -120,7 +120,7 @@ public abstract class MsgRepository<T,S extends DataSource> implements MsgReposi
 		}
 	}
 
-	protected SimpleParser parser = SingletonFactory.getParserInstance();	
+	protected SimpleParser parser = SingletonFactory.getParserInstance();
 	protected long earliestOffline = Long.MAX_VALUE;
 	protected DelayQueue<MsgDBItem<T>> expiredQueue = new DelayQueue<MsgDBItem<T>>() {
 		@Override
@@ -142,32 +142,33 @@ public abstract class MsgRepository<T,S extends DataSource> implements MsgReposi
 	private long msgs_store_limit = MSGS_STORE_LIMIT_VAL;
 	@ConfigField(desc = "Support limits of offline messages set by users", alias = "user-store-limit-enable")
 	private boolean msgs_user_store_limit = false;
-	
+
 	protected abstract void loadExpiredQueue(int max);
 	protected abstract void loadExpiredQueue(Date expired);
 	protected abstract void deleteMessage(T db_id);
 
 	public abstract	Queue<Element> loadMessagesToJID(List<String> db_ids,  XMPPResourceConnection session, boolean delete,
-																		OfflineMessagesProcessor proc ) throws UserNotFoundException;
+														OfflineMessagesProcessor proc ) throws UserNotFoundException;
 	public abstract	int deleteMessagesToJID( List<String> db_ids, XMPPResourceConnection session) throws UserNotFoundException;
 
 	@Override
+	@Deprecated
 	public void initRepository(String conn_str, Map<String, String> map)
 			throws DBInitException {
-		
+
 		if (map != null) {
 			String msgs_store_limit_str = map.get(MSGS_STORE_LIMIT_KEY);
-			
+
 			if (msgs_store_limit_str != null) {
 				msgs_store_limit = Long.parseLong(msgs_store_limit_str);
 			}
-			
+
 			String msgs_user_store_limit_enable = map.get(MSGS_USER_STORE_LIMIT_ENABLE_KEY);
 			if (msgs_user_store_limit_enable != null) {
 				msgs_user_store_limit = Boolean.parseBoolean(msgs_user_store_limit_enable);
-			}			
+			}
 		}
-	}	
+	}
 
 	protected long getMsgsStoreLimit(BareJID userJid, NonAuthUserRepository userRepo) throws UserNotFoundException {
 		if (msgs_user_store_limit) {
@@ -261,7 +262,7 @@ public abstract class MsgRepository<T,S extends DataSource> implements MsgReposi
 			return unit.convert(expired.getTime() - System.currentTimeMillis(),
 					TimeUnit.MILLISECONDS);
 		}
-	}	
+	}
 
 	public interface OfflineMessagesProcessor {
 		public void stamp(Element msg, String msgID);
@@ -345,6 +346,7 @@ public abstract class MsgRepository<T,S extends DataSource> implements MsgReposi
 		}
 
 		@Override
+		@Deprecated
 		public void initRepository(String resource_uri, Map<String, String> params) throws DBInitException {
 
 		}

@@ -44,7 +44,7 @@ import java.util.logging.Logger;
 
 /**
  * Created: May 3, 2010 5:28:02 PM
- * 
+ *
  * @author <a href="mailto:artur.hefczyc@tigase.org">Artur Hefczyc</a>
  * @version $Rev$
  */
@@ -104,6 +104,7 @@ public class JDBCMsgRepository extends MsgRepository<Long,DataRepository> {
 	}
 
 	@Override
+	@Deprecated
 	public void initRepository(String conn_str, Map<String, String> map)
 			throws DBInitException {
 		if (initialized) {
@@ -114,7 +115,7 @@ public class JDBCMsgRepository extends MsgRepository<Long,DataRepository> {
 		log.log(Level.INFO, "Initializing dbAccess for db connection url: {0}", conn_str);
 
 		super.initRepository(conn_str, map);
-		
+
 		try {
 			data_repo = RepositoryFactory.getDataRepository(null, conn_str, map);
 			setDataSource(data_repo);
@@ -157,91 +158,91 @@ public class JDBCMsgRepository extends MsgRepository<Long,DataRepository> {
 
 	@Override
 	public List<Element> getMessagesList( JID to) {
-			List<Element> result = new LinkedList<Element>();
-			ResultSet rs = null;
+		List<Element> result = new LinkedList<Element>();
+		ResultSet rs = null;
 
-			try {
-				PreparedStatement select_messages_list
-													= data_repo.getPreparedStatement( to.getBareJID(), MSGS_LIST_MESSAGES );
+		try {
+			PreparedStatement select_messages_list
+					= data_repo.getPreparedStatement( to.getBareJID(), MSGS_LIST_MESSAGES );
 
-				synchronized (select_messages_list) {
-					try {
-						select_messages_list.setString(1, to.getBareJID().toString());
+			synchronized (select_messages_list) {
+				try {
+					select_messages_list.setString(1, to.getBareJID().toString());
 
-						rs = select_messages_list.executeQuery();
+					rs = select_messages_list.executeQuery();
 
-						while (rs.next()) {
-							long msgId = rs.getLong(1);
-							int mType = rs.getInt(2);
-							MSG_TYPES messageType = MSG_TYPES.getFromInt(mType);
-							String sender = rs.getString(3);
+					while (rs.next()) {
+						long msgId = rs.getLong(1);
+						int mType = rs.getInt(2);
+						MSG_TYPES messageType = MSG_TYPES.getFromInt(mType);
+						String sender = rs.getString(3);
 
-							if (msgId != 0 && messageType != MSG_TYPES.none && sender != null) {
-								Element item = new Element("item",
-										new String[]{"jid", "node", "type", "name"},
-										new String[]{to.getBareJID().toString(), String.valueOf(msgId),
+						if (msgId != 0 && messageType != MSG_TYPES.none && sender != null) {
+							Element item = new Element("item",
+									new String[]{"jid", "node", "type", "name"},
+									new String[]{to.getBareJID().toString(), String.valueOf(msgId),
 											messageType.name(), sender});
-								result.add(item);
-							}
+							result.add(item);
 						}
-					} finally {
-						data_repo.release(null, rs);
 					}
+				} finally {
+					data_repo.release(null, rs);
 				}
-
-			} catch ( SQLException e ) {
-				e.printStackTrace();
-				log.log( Level.WARNING, "Problem getting offline messages for user: " + to, e );
 			}
-			return result;
+
+		} catch ( SQLException e ) {
+			e.printStackTrace();
+			log.log( Level.WARNING, "Problem getting offline messages for user: " + to, e );
+		}
+		return result;
 
 	}
 
 	@Override
 	public Queue<Element> loadMessagesToJID( List<String> db_ids, XMPPResourceConnection session, boolean delete, OfflineMessagesProcessor proc) throws UserNotFoundException {
 
-			Queue<Element> result = null;
-			BareJID to = null;
-		
-			try {
-				to = session.getBareJID();
+		Queue<Element> result = null;
+		BareJID to = null;
 
-				if ( db_ids == null || db_ids.size() == 0 ){
-					// fetch
-					return loadMessagesToJID( session, delete, proc );
-				} else {
-					ResultSet rs = null;
-					result = new LinkedList<Element>();
+		try {
+			to = session.getBareJID();
 
-					Iterator<String> ids = db_ids.iterator();
+			if ( db_ids == null || db_ids.size() == 0 ){
+				// fetch
+				return loadMessagesToJID( session, delete, proc );
+			} else {
+				ResultSet rs = null;
+				result = new LinkedList<Element>();
 
-					while (ids.hasNext()) {
-						PreparedStatement select_ids_to_jid_st = data_repo.getPreparedStatement( to, MSGS_GET_MESSAGES_BY_IDS);
-						synchronized ( select_ids_to_jid_st ) {
-							try {
-								select_ids_to_jid_st.setString(1, to.toString());
-								for (int j = 0; j < 4; j++) {
-									String id = ids.hasNext() ? ids.next() : null;
-									select_ids_to_jid_st.setString(j + 2, id);
-								}
-								rs = select_ids_to_jid_st.executeQuery();
-								result.addAll(parseLoadedMessages(proc, rs));
-							} finally {
-								data_repo.release(null, rs);
+				Iterator<String> ids = db_ids.iterator();
+
+				while (ids.hasNext()) {
+					PreparedStatement select_ids_to_jid_st = data_repo.getPreparedStatement( to, MSGS_GET_MESSAGES_BY_IDS);
+					synchronized ( select_ids_to_jid_st ) {
+						try {
+							select_ids_to_jid_st.setString(1, to.toString());
+							for (int j = 0; j < 4; j++) {
+								String id = ids.hasNext() ? ids.next() : null;
+								select_ids_to_jid_st.setString(j + 2, id);
 							}
+							rs = select_ids_to_jid_st.executeQuery();
+							result.addAll(parseLoadedMessages(proc, rs));
+						} finally {
+							data_repo.release(null, rs);
 						}
 					}
 				}
-
-				if ( delete ){
-					deleteMessagesToJID( null, session );
-				}
-			} catch ( SQLException e ) {
-				log.log( Level.WARNING, "Problem getting offline messages for user: " + to, e );
-			} catch (NotAuthorizedException ex) {
-				log.log(Level.WARNING, "Session not authorized yet!", ex);				
 			}
-			return result;
+
+			if ( delete ){
+				deleteMessagesToJID( null, session );
+			}
+		} catch ( SQLException e ) {
+			log.log( Level.WARNING, "Problem getting offline messages for user: " + to, e );
+		} catch (NotAuthorizedException ex) {
+			log.log(Level.WARNING, "Session not authorized yet!", ex);
+		}
+		return result;
 
 	}
 
@@ -253,11 +254,11 @@ public class JDBCMsgRepository extends MsgRepository<Long,DataRepository> {
 
 		try {
 			to = session.getBareJID();
-			
+
 			if ( db_ids == null || db_ids.size() == 0 ){
 				// purge
 				PreparedStatement delete_to_jid_st
-													= data_repo.getPreparedStatement( to, MSGS_DELETE_MESSAGES );
+						= data_repo.getPreparedStatement( to, MSGS_DELETE_MESSAGES );
 
 				ResultSet rs = null;
 				synchronized ( delete_to_jid_st ) {
@@ -297,7 +298,7 @@ public class JDBCMsgRepository extends MsgRepository<Long,DataRepository> {
 		} catch ( SQLException e ) {
 			log.log( Level.WARNING, "Problem getting offline messages for user: " + to, e );
 		} catch (NotAuthorizedException ex) {
-			log.log(Level.WARNING, "Session not authorized yet!", ex);			
+			log.log(Level.WARNING, "Session not authorized yet!", ex);
 		}
 
 		return affectedRows;
@@ -314,10 +315,10 @@ public class JDBCMsgRepository extends MsgRepository<Long,DataRepository> {
 			throws UserNotFoundException {
 		Queue<Element> result = null;
 		BareJID to = null;
-		
+
 		try {
 			to = session.getBareJID();
-			
+
 			ResultSet rs = null;
 			PreparedStatement select_to_jid_st =
 					data_repo.getPreparedStatement(to, MSGS_GET_MESSAGES);
@@ -473,7 +474,7 @@ public class JDBCMsgRepository extends MsgRepository<Long,DataRepository> {
 			log.log(Level.WARNING, "Problem removing entry from DB: ", e);
 		}
 	}
-	
+
 	// ~--- methods --------------------------------------------------------------
 
 	@Override

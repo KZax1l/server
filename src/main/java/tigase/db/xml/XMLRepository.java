@@ -74,10 +74,10 @@ public class XMLRepository
 
 	@Override
 	public synchronized void addDataList(BareJID user, final String subnode, final String key,
-			final String[] list)
+										 final String[] list)
 			throws UserNotFoundException, TigaseDBException {
 		log.log( Level.FINEST, "Adding data list, user: {0}, subnode: {1}, key: {2}, list: {3}",
-						 new Object[] { user, subnode, key, Arrays.asList( list ) } );
+				new Object[] { user, subnode, key, Arrays.asList( list ) } );
 
 		try {
 			String[] old_data = getDataList(user, subnode, key);
@@ -99,7 +99,7 @@ public class XMLRepository
 	@Override
 	public synchronized void addUser(BareJID user) throws UserExistsException {
 		log.log( Level.FINEST, "adding new user, user: {0}",
-						 new Object[] { user } );
+				new Object[] { user } );
 		try {
 			xmldb.addNode1(user.toString());
 		} catch (NodeExistsException e) {
@@ -116,17 +116,17 @@ public class XMLRepository
 	@Override
 	@Deprecated
 	public synchronized boolean digestAuth(BareJID user, final String digest, final String id,
-			final String alg)
+										   final String alg)
 			throws UserNotFoundException, TigaseDBException, AuthorizationException {
 		return auth.digestAuth(user, digest, id, alg);
 	}
 
 	@Override
 	public synchronized String getData(BareJID user, final String subnode, final String key,
-			final String def)
+									   final String def)
 			throws UserNotFoundException, TigaseDBException {
 		log.log( Level.FINEST, "Getting data, user: {0}, subnode: {1}, key: {2}",
-						 new Object[] { user, subnode, key } );
+				new Object[] { user, subnode, key } );
 
 		try {
 			return (String) xmldb.getData(user.toString(), subnode, key, def);
@@ -159,10 +159,10 @@ public class XMLRepository
 
 	@Override
 	public synchronized String[] getDataList(BareJID user, final String subnode,
-			final String key)
+											 final String key)
 			throws UserNotFoundException, TigaseDBException {
 		log.log( Level.FINEST, "Getting data list, user: {0}, subnode: {1}, key: {2}",
-						 new Object[] { user, subnode, key } );
+				new Object[] { user, subnode, key } );
 
 		try {
 			return xmldb.getDataList(user.toString(), subnode, key);
@@ -185,7 +185,7 @@ public class XMLRepository
 	public synchronized String[] getKeys(BareJID user, final String subnode)
 			throws UserNotFoundException, TigaseDBException {
 		log.log( Level.FINEST, "Getting keys, user: {0}, subnode: {1}",
-						 new Object[] { user, subnode } );
+				new Object[] { user, subnode } );
 
 		try {
 			return xmldb.getKeys(user.toString(), subnode);
@@ -218,7 +218,7 @@ public class XMLRepository
 	public synchronized String[] getSubnodes(BareJID user, final String subnode)
 			throws UserNotFoundException, TigaseDBException {
 		log.log( Level.FINEST, "Getting subnodes, user: {0}, subnode: {1}",
-						 new Object[] { user, subnode } );
+				new Object[] { user, subnode } );
 
 		try {
 			return xmldb.getSubnodes(user.toString(), subnode);
@@ -251,7 +251,7 @@ public class XMLRepository
 	public synchronized List<BareJID> getUsers() {
 		List<String> users = xmldb.getAllNode1s();
 		log.log( Level.FINEST, "Getting users, users: {0}, xmldb: {1}",
-						 new Object[] { users, xmldb } );
+				new Object[] { users, xmldb } );
 
 
 		List<BareJID> result = new ArrayList<BareJID>();
@@ -283,6 +283,7 @@ public class XMLRepository
 	}
 
 	@Override
+	@Deprecated
 	public synchronized void initRepository(String file, Map<String, String> params) throws DBInitException {
 		if (xmldb == null) {
 			log.log(Level.FINEST, "Initializing repository, file: {0}, params: {1}", new Object[]{file, params});
@@ -327,7 +328,7 @@ public class XMLRepository
 	public synchronized void removeData(BareJID user, final String subnode, final String key)
 			throws UserNotFoundException {
 		log.log( Level.FINEST, "Removing data, user: {0}, subnode: {1}, key: {2}",
-						 new Object[] { user, subnode, key } );
+				new Object[] { user, subnode, key } );
 
 		try {
 			xmldb.removeData(user.toString(), subnode, key);
@@ -347,7 +348,7 @@ public class XMLRepository
 	public synchronized void removeSubnode(BareJID user, final String subnode)
 			throws UserNotFoundException {
 		log.log( Level.FINEST, "Removing subnode, user: {0}, subnode: {1}",
-						 new Object[] { user, subnode } );
+				new Object[] { user, subnode } );
 
 		try {
 			xmldb.removeSubnode(user.toString(), subnode);
@@ -361,8 +362,8 @@ public class XMLRepository
 	@Override
 	public synchronized void removeUser(BareJID user) throws UserNotFoundException {
 		try {
-		log.log( Level.FINEST, "Removing user: {0}",
-						 new Object[] { user } );
+			log.log( Level.FINEST, "Removing user: {0}",
+					new Object[] { user } );
 
 			xmldb.removeNode1(user.toString());
 		} catch (NodeNotFoundException e) {
@@ -374,10 +375,10 @@ public class XMLRepository
 
 	@Override
 	public synchronized void setData( BareJID user, final String subnode, final String key,
-																		final String value )
+									  final String value )
 			throws UserNotFoundException, TigaseDBException {
 		log.log( Level.FINEST, "Setting data, user: {0}, subnode: {1}, key: {2}, value: {3}",
-						 new Object[] { user, subnode, key, value } );
+				new Object[] { user, subnode, key, value } );
 		try {
 			xmldb.setData(user.toString(), subnode, key, value);
 		} catch (NodeNotFoundException e) {
@@ -402,10 +403,10 @@ public class XMLRepository
 
 	@Override
 	public synchronized void setDataList(BareJID user, final String subnode, final String key,
-			final String[] list)
+										 final String[] list)
 			throws UserNotFoundException, TigaseDBException {
 		log.log( Level.FINEST, "Setting data list, user: {0}, subnode: {1}, key: {2}, value: {3}",
-						 new Object[] { user, subnode, key, Arrays.asList( list ) } );
+				new Object[] { user, subnode, key, Arrays.asList( list ) } );
 		try {
 			xmldb.setData(user.toString(), subnode, key, list);
 		} catch (NodeNotFoundException e) {
@@ -437,16 +438,16 @@ public class XMLRepository
 	public String getPassword(BareJID user) throws UserNotFoundException, TigaseDBException {
 		return auth.getPassword(user);
 	}
-	
+
 	@Override
-	public boolean isUserDisabled(BareJID user) 
-					throws UserNotFoundException, TigaseDBException {
+	public boolean isUserDisabled(BareJID user)
+			throws UserNotFoundException, TigaseDBException {
 		return false;
 	}
-	
+
 	@Override
-	public void setUserDisabled(BareJID user, Boolean value) 
-					throws UserNotFoundException, TigaseDBException {
+	public void setUserDisabled(BareJID user, Boolean value)
+			throws UserNotFoundException, TigaseDBException {
 		throw new TigaseDBException("Feature not supported");
 	}
 

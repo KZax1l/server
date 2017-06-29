@@ -21,6 +21,7 @@
  */
 package tigase.db.beans;
 
+import tigase.component.exceptions.RepositoryException;
 import tigase.db.DBInitException;
 import tigase.db.DataSource;
 import tigase.db.DataSourceHelper;
@@ -54,9 +55,9 @@ import static tigase.db.beans.DataSourceBean.DataSourceMDConfigBean;
  */
 @Bean(name="dataSource", parent = Kernel.class, active = true, exportable = true)
 @ConfigType({ConfigTypeEnum.DefaultMode, ConfigTypeEnum.SessionManagerMode, ConfigTypeEnum.ConnectionManagersMode,
-			 ConfigTypeEnum.ComponentMode})
+		ConfigTypeEnum.ComponentMode})
 public class DataSourceBean extends MDPoolBean<DataSource, DataSourceMDConfigBean> implements
-																				   ComponentStatisticsProvider {
+		ComponentStatisticsProvider {
 
 	private static final Logger log = Logger.getLogger(DataSourceBean.class.getCanonicalName());
 
@@ -120,7 +121,7 @@ public class DataSourceBean extends MDPoolBean<DataSource, DataSourceMDConfigBea
 	public void everySecond() {
 
 	}
-	
+
 	@Override
 	public void getStatistics(String compName, StatisticsList list) {
 		String name = getName();
@@ -205,6 +206,11 @@ public class DataSourceBean extends MDPoolBean<DataSource, DataSourceMDConfigBea
 		public void initialize() {
 			super.initialize();
 			updateWatchdogTask();
+		}
+
+		@Override
+		protected void initRepository(DataSource repo) throws RepositoryException {
+			repo.initialize(getUri());
 		}
 
 		@Override

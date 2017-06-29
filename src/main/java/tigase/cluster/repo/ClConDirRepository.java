@@ -30,18 +30,13 @@ package tigase.cluster.repo;
 
 //~--- JDK imports ------------------------------------------------------------
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileFilter;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
+import tigase.db.DBInitException;
+import tigase.db.Repository;
+
+import java.io.*;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import tigase.db.DBInitException;
-import tigase.db.Repository;
 
 /**
  *
@@ -49,8 +44,8 @@ import tigase.db.Repository;
  */
 @Repository.Meta( supportedUris = { "file://.*" } )
 public class ClConDirRepository
-				extends ClConConfigRepository
-				implements ClusterRepoConstants {
+		extends ClConConfigRepository
+		implements ClusterRepoConstants {
 	/** Field description */
 	public static final String REPO_FILE_EXTENSION = ".rep";
 
@@ -72,7 +67,7 @@ public class ClConDirRepository
 		// Nothing to do here
 		super.destroy();
 	}
-	
+
 	//~--- get methods ----------------------------------------------------------
 
 	@Override
@@ -82,11 +77,12 @@ public class ClConDirRepository
 	}
 
 	@Override
+	@Deprecated
 	public void initRepository(String conn_str, Map<String, String> params) throws DBInitException {
 		// Nothing to do here
 		super.initRepository(conn_str, params);
 	}
-	
+
 	//~--- set methods ----------------------------------------------------------
 
 	@Override
@@ -136,14 +132,14 @@ public class ClConDirRepository
 	//~--- inner classes --------------------------------------------------------
 
 	private class DirFilter
-					implements FileFilter {
+			implements FileFilter {
 		/**
 		 * Method description
 		 *
 		 *
 		 * @param file
 		 *
-		 * 
+		 *
 		 */
 		@Override
 		public boolean accept(File file) {

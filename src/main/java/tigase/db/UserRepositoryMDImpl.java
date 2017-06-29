@@ -71,7 +71,7 @@ public abstract class UserRepositoryMDImpl extends MDPoolBeanWithStatistics<User
 		} else {
 			log.log(Level.WARNING,
 					"Couldn't obtain user repository for domain: " + user.getDomain()
-						+ ", not even default one!");
+							+ ", not even default one!");
 		}
 	}
 
@@ -84,7 +84,7 @@ public abstract class UserRepositoryMDImpl extends MDPoolBeanWithStatistics<User
 		} else {
 			log.log(Level.WARNING,
 					"Couldn't obtain user repository for domain: " + user.getDomain()
-						+ ", not even default one!");
+							+ ", not even default one!");
 		}
 	}
 
@@ -100,7 +100,7 @@ public abstract class UserRepositoryMDImpl extends MDPoolBeanWithStatistics<User
 		} else {
 			log.log(Level.WARNING,
 					"Couldn't obtain user repository for domain: " + user.getDomain()
-						+ ", not even default one!");
+							+ ", not even default one!");
 		}
 
 		return null;
@@ -116,7 +116,7 @@ public abstract class UserRepositoryMDImpl extends MDPoolBeanWithStatistics<User
 		} else {
 			log.log(Level.WARNING,
 					"Couldn't obtain user repository for domain: " + user.getDomain()
-						+ ", not even default one!");
+							+ ", not even default one!");
 		}
 
 		return null;
@@ -132,7 +132,7 @@ public abstract class UserRepositoryMDImpl extends MDPoolBeanWithStatistics<User
 		} else {
 			log.log(Level.WARNING,
 					"Couldn't obtain user repository for domain: " + user.getDomain()
-						+ ", not even default one!");
+							+ ", not even default one!");
 		}
 
 		return null;
@@ -148,7 +148,7 @@ public abstract class UserRepositoryMDImpl extends MDPoolBeanWithStatistics<User
 		} else {
 			log.log(Level.WARNING,
 					"Couldn't obtain user repository for domain: " + user.getDomain()
-						+ ", not even default one!");
+							+ ", not even default one!");
 		}
 
 		return null;
@@ -164,7 +164,7 @@ public abstract class UserRepositoryMDImpl extends MDPoolBeanWithStatistics<User
 		} else {
 			log.log(Level.WARNING,
 					"Couldn't obtain user repository for domain: " + user.getDomain()
-						+ ", not even default one!");
+							+ ", not even default one!");
 		}
 
 		return null;
@@ -179,7 +179,7 @@ public abstract class UserRepositoryMDImpl extends MDPoolBeanWithStatistics<User
 		} else {
 			log.log(Level.WARNING,
 					"Couldn't obtain user repository for domain: " + user.getDomain()
-						+ ", not even default one!");
+							+ ", not even default one!");
 		}
 
 		return null;
@@ -200,7 +200,7 @@ public abstract class UserRepositoryMDImpl extends MDPoolBeanWithStatistics<User
 		} else {
 			log.log(Level.WARNING,
 					"Couldn't obtain user repository for domain: " + user.getDomain()
-						+ ", not even default one!");
+							+ ", not even default one!");
 		}
 
 		return null;
@@ -215,7 +215,7 @@ public abstract class UserRepositoryMDImpl extends MDPoolBeanWithStatistics<User
 		} else {
 			log.log(Level.WARNING,
 					"Couldn't obtain user repository for domain: " + user.getDomain()
-						+ ", not even default one!");
+							+ ", not even default one!");
 		}
 
 		return null;
@@ -230,7 +230,7 @@ public abstract class UserRepositoryMDImpl extends MDPoolBeanWithStatistics<User
 		} else {
 			log.log(Level.WARNING,
 					"Couldn't obtain user repository for domain: " + user.getDomain()
-						+ ", not even default one!");
+							+ ", not even default one!");
 		}
 
 		return -1;
@@ -277,6 +277,7 @@ public abstract class UserRepositoryMDImpl extends MDPoolBeanWithStatistics<User
 	//~--- methods --------------------------------------------------------------
 
 	@Override
+	@Deprecated
 	public void initRepository(String resource_uri, Map<String, String> params)
 			throws DBInitException {
 		log.info("Multi-domain repository pool initialized: " + resource_uri + ", params: "
@@ -293,7 +294,7 @@ public abstract class UserRepositoryMDImpl extends MDPoolBeanWithStatistics<User
 		} else {
 			log.log(Level.WARNING,
 					"Couldn't obtain user repository for domain: " + user.getDomain()
-						+ ", not even default one!");
+							+ ", not even default one!");
 		}
 	}
 
@@ -307,7 +308,7 @@ public abstract class UserRepositoryMDImpl extends MDPoolBeanWithStatistics<User
 		} else {
 			log.log(Level.WARNING,
 					"Couldn't obtain user repository for domain: " + user.getDomain()
-						+ ", not even default one!");
+							+ ", not even default one!");
 		}
 	}
 
@@ -321,7 +322,7 @@ public abstract class UserRepositoryMDImpl extends MDPoolBeanWithStatistics<User
 		} else {
 			log.log(Level.WARNING,
 					"Couldn't obtain user repository for domain: " + user.getDomain()
-						+ ", not even default one!");
+							+ ", not even default one!");
 		}
 	}
 
@@ -336,7 +337,7 @@ public abstract class UserRepositoryMDImpl extends MDPoolBeanWithStatistics<User
 		} else {
 			log.log(Level.WARNING,
 					"Couldn't obtain user repository for domain: " + user.getDomain()
-						+ ", not even default one!");
+							+ ", not even default one!");
 		}
 	}
 
@@ -352,7 +353,7 @@ public abstract class UserRepositoryMDImpl extends MDPoolBeanWithStatistics<User
 		} else {
 			log.log(Level.WARNING,
 					"Couldn't obtain user repository for domain: " + user.getDomain()
-						+ ", not even default one!");
+							+ ", not even default one!");
 		}
 	}
 
@@ -366,7 +367,7 @@ public abstract class UserRepositoryMDImpl extends MDPoolBeanWithStatistics<User
 		} else {
 			log.log(Level.WARNING,
 					"Couldn't obtain user repository for domain: " + user.getDomain()
-						+ ", not even default one!");
+							+ ", not even default one!");
 		}
 	}
 
@@ -380,7 +381,7 @@ public abstract class UserRepositoryMDImpl extends MDPoolBeanWithStatistics<User
 		} else {
 			log.log(Level.WARNING,
 					"Couldn't obtain user repository for domain: " + user.getDomain()
-						+ ", not even default one!");
+							+ ", not even default one!");
 		}
 	}
 
@@ -395,7 +396,7 @@ public abstract class UserRepositoryMDImpl extends MDPoolBeanWithStatistics<User
 		} else {
 			log.log(Level.WARNING,
 					"Couldn't obtain user repository for domain: " + user.getDomain()
-						+ ", not even default one!");
+							+ ", not even default one!");
 		}
 
 		return false;

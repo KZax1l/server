@@ -21,6 +21,7 @@
  */
 package tigase.db.beans;
 
+import tigase.component.exceptions.RepositoryException;
 import tigase.db.DBInitException;
 import tigase.db.DataSource;
 import tigase.db.DataSourceAware;
@@ -69,7 +70,7 @@ public abstract class MDRepositoryBean<T extends DataSourceAware> implements Ini
 
 	@ConfigField(desc = "Create repositories for: every UserRepository, every data source, listed data sources")
 	protected SelectorType dataSourceSelection = SelectorType.List;
-	
+
 	private final Map<String,T> repositories = new ConcurrentHashMap<>();
 	private Kernel kernel;
 
@@ -272,7 +273,11 @@ public abstract class MDRepositoryBean<T extends DataSourceAware> implements Ini
 
 			if (dataSourceAware != null) {
 				this.mdRepositoryBean.initializeRepository(name, dataSourceAware);
-				dataSourceAware.setDataSource(dataSource);
+				try {
+					dataSourceAware.setDataSource(dataSource);
+				} catch (RepositoryException ex) {
+					throw new RuntimeException("Failed to initialize repository", ex);
+				}
 			}
 			mdRepositoryBean.updateDataSourceAware(name, dataSourceAware, this.dataSourceAware);
 			this.dataSourceAware = dataSourceAware;

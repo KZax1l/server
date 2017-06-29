@@ -48,7 +48,7 @@ public class AuthRepositoryPool implements AuthRepository, RepositoryPool<AuthRe
 	//~--- fields ---------------------------------------------------------------
 
 	private LinkedBlockingQueue<AuthRepository> repoPool =
-		new LinkedBlockingQueue<AuthRepository>();
+			new LinkedBlockingQueue<AuthRepository>();
 
 	//~--- methods --------------------------------------------------------------
 
@@ -153,6 +153,7 @@ public class AuthRepositoryPool implements AuthRepository, RepositoryPool<AuthRe
 	//~--- methods --------------------------------------------------------------
 
 	@Override
+	@Deprecated
 	public void initRepository(String resource_uri, Map<String, String> params)
 			throws DBInitException {}
 
@@ -257,7 +258,7 @@ public class AuthRepositoryPool implements AuthRepository, RepositoryPool<AuthRe
 	 * Method description
 	 *
 	 *
-	 * 
+	 *
 	 */
 	public AuthRepository takeRepo() {
 		try {
@@ -300,7 +301,7 @@ public class AuthRepositoryPool implements AuthRepository, RepositoryPool<AuthRe
 			return null;
 		}
 	}
-	
+
 	@Override
 	public boolean isUserDisabled(BareJID user) throws UserNotFoundException, TigaseDBException {
 		AuthRepository repo = takeRepo();
@@ -361,5 +362,5 @@ public class AuthRepositoryPool implements AuthRepository, RepositoryPool<AuthRe
 		} else {
 			log.warning("repo is NULL, pool empty? - " + repoPool.size());
 		}
-	}		
+	}
 }
