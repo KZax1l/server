@@ -60,8 +60,8 @@ import java.util.logging.Logger;
 @Bean(name="s2s", parent=Kernel.class, active = true)
 @ConfigType({ConfigTypeEnum.DefaultMode, ConfigTypeEnum.ConnectionManagersMode})
 public class S2SConnectionManager
-				extends ConnectionManager<S2SIOService>
-				implements S2SConnectionHandlerIfc<S2SIOService> {
+		extends ConnectionManager<S2SIOService>
+		implements S2SConnectionHandlerIfc<S2SIOService> {
 	/** Field description */
 	public static final String CID_CONNECTIONS_BIND = "cidConnections";
 
@@ -103,7 +103,7 @@ public class S2SConnectionManager
 
 	/** Field description */
 	public static final String S2S_DOMAIN_MAPPING_PROP_KEY = "s2s-domain-mapping";
-	
+
 	/** Field description */
 	public static final String S2S_DOMAIN_MAPPING_PROP_VAL = "";
 
@@ -405,7 +405,7 @@ public class S2SConnectionManager
 		addPacket(packet);
 		return true;
 	}
-	
+
 	@Override
 	public void reconnectionFailed(Map<String, Object> port_props) {
 		CID cid = (CID) port_props.get("cid");
@@ -438,15 +438,15 @@ public class S2SConnectionManager
 
 	@Override
 	public boolean sendVerifyResult(String elem_name, CID connCid, CID keyCid,
-			Boolean valid, String key_sessionId, String serv_sessionId, String cdata,
-			boolean handshakingOnly) {
+									Boolean valid, String key_sessionId, String serv_sessionId, String cdata,
+									boolean handshakingOnly) {
 		return this.sendVerifyResult(elem_name, connCid, keyCid, valid, key_sessionId, serv_sessionId, cdata, handshakingOnly, null);
 	}
-	
+
 	@Override
 	public boolean sendVerifyResult(String elem_name, CID connCid, CID keyCid,
-			Boolean valid, String key_sessionId, String serv_sessionId, String cdata,
-			boolean handshakingOnly, Element errorElem) {	
+									Boolean valid, String key_sessionId, String serv_sessionId, String cdata,
+									boolean handshakingOnly, Element errorElem) {
 		CIDConnections cid_conns = getCIDConnections(connCid);
 
 		if (cid_conns != null) {
@@ -468,7 +468,7 @@ public class S2SConnectionManager
 			if (errorElem != null) {
 				verify_valid.getElement().addChild(errorElem);
 			}
-			
+
 			if (handshakingOnly) {
 				cid_conns.sendHandshakingOnly(verify_valid);
 
@@ -561,7 +561,7 @@ public class S2SConnectionManager
 
 	@Override
 	public CIDConnections getCIDConnections(CID cid, boolean createNew)
-					throws NotLocalhostException, LocalhostException {
+			throws NotLocalhostException, LocalhostException {
 		CIDConnections result = getCIDConnections(cid);
 
 		if ((result == null) && createNew && (cid != null)) {
@@ -603,25 +603,25 @@ public class S2SConnectionManager
 					String        basedomain = domain.substring(idx + 1);
 					item = vHostManager.getVHostItem(basedomain);
 				}
-				
+
 				if (item == null) {
 					item = vHostManager.getVHostItem(vHostManager.getDefVHostItem().toString());
 				}
 			}
 		}
-		
+
 		if (item == null) {
 			throw new NotLocalhostException("This is not a valid localhost: " + domain);
 		}
-		
+
 		return item.getS2sSecret();
 	}
 
 	@Override
 	public String getServerNameForDomain(String domain) {
 		return domainServerNameMapper.getServerNameForDomain(domain);
-	}	
-		
+	}
+
 	@Override
 	public void getStatistics(StatisticsList list) {
 		super.getStatistics(list);
@@ -654,10 +654,10 @@ public class S2SConnectionManager
 					// log.log(Level.FINEST, "Called from: ", thr);
 					log.log(Level.FINEST,
 							"CID: {0}, OUT: {1}, OUT_HAND: {2}, IN: {3}, dbKeys: {4}, " +
-							"waiting: {5}, waiting_control: {6}", new Object[] {
-						cid_conn.getKey(), outgoing, outgoing_handshaking, incoming, dbKeys, waiting,
-								waiting_control
-					});
+									"waiting: {5}, waiting_control: {6}", new Object[] {
+									cid_conn.getKey(), outgoing, outgoing_handshaking, incoming, dbKeys, waiting,
+									waiting_control
+							});
 				}
 				total_outgoing             += outgoing;
 				total_outgoing_tls         += outgoing_tls;
@@ -694,9 +694,9 @@ public class S2SConnectionManager
 	@Override
 	public boolean isTlsRequired(String domain) {
 		VHostItem item = vHostManager.getVHostItemDomainOrComponent(domain);
-		return item.isTlsRequired();
+		return item != null && item.isTlsRequired();
 	}
-	
+
 	@Override
 	public boolean isTlsWantClientAuthEnabled() {
 		return true;
@@ -706,7 +706,7 @@ public class S2SConnectionManager
 	public boolean isTlsNeedClientAuthEnabled() {
 		return false;
 	}
-	
+
 	//~--- set methods ----------------------------------------------------------
 
 	public void setProcessors(List<S2SProcessor> processors) {
@@ -755,7 +755,7 @@ public class S2SConnectionManager
 	//~--- methods --------------------------------------------------------------
 
 	protected CIDConnections createNewCIDConnections(CID cid)
-					throws NotLocalhostException, LocalhostException {
+			throws NotLocalhostException, LocalhostException {
 		if (!isLocalDomainOrComponent(cid.getLocalHost())) {
 			throw new NotLocalhostException("This is not a valid localhost: " + cid
 					.getLocalHost());
@@ -786,7 +786,7 @@ public class S2SConnectionManager
 	}
 
 	private Packet getValidResponse(String elem_name, CID cid, String id, StanzaType type,
-			String cdata) {
+									String cdata) {
 		Element elem = new Element(elem_name);
 
 		if (cdata != null) {
@@ -807,7 +807,7 @@ public class S2SConnectionManager
 
 	@Bean(name = "domainServerNameMapper", parent = S2SConnectionManager.class, active = true)
 	public static class DomainServerNameMapper {
-		
+
 		private class Entry implements Comparable<Entry>{
 			private final String pattern;
 			private final String serverName;
@@ -835,7 +835,7 @@ public class S2SConnectionManager
 				}
 				return false;
 			}
-			
+
 			@Override
 			public int hashCode() {
 				return pattern.hashCode();
@@ -861,7 +861,7 @@ public class S2SConnectionManager
 		private List<Entry> entries = new ArrayList<Entry>();
 
 		public DomainServerNameMapper() {}
-		
+
 		protected void addEntry(String pattern, String serverName) {
 			// clone list to fix possible concurrency issues with collection
 			// could use CopyOnWriteArrayList but sorting this collection 
@@ -874,7 +874,7 @@ public class S2SConnectionManager
 				this.entries = entries;
 			}
 		}
-		
+
 		public String getServerNameForDomain(String domain) {
 			for (Entry e : entries) {
 				if (e.matches(domain))
@@ -910,11 +910,11 @@ public class S2SConnectionManager
 				sb.append("=");
 				sb.append(e.serverName);
 				first = false;
-			} 
+			}
 			sb.append("]");
 			return sb.toString();
 		}
-		
+
 	}
 }
 

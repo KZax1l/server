@@ -78,7 +78,7 @@ public class SocketThread implements Runnable {
 
 	//~--- static initializers --------------------------------------------------
 
-//private static int threadNo = 0;
+	//private static int threadNo = 0;
 //private static final int READ_ONLY = SelectionKey.OP_READ;
 //private static final int READ_WRITE = SelectionKey.OP_READ | SelectionKey.OP_WRITE;
 	static {
@@ -126,7 +126,7 @@ public class SocketThread implements Runnable {
 	private boolean reading = false;
 	private boolean writing = false;
 	private ConcurrentSkipListSet<IOService<?>> waiting =
-		new ConcurrentSkipListSet<IOService<?>>(new IOServiceComparator());
+			new ConcurrentSkipListSet<IOService<?>>(new IOServiceComparator());
 	private boolean stopping = false;
 
 	// IOServices must be added to thread pool after they are removed from
@@ -134,7 +134,7 @@ public class SocketThread implements Runnable {
 	// dead-lock somewhere down in the:
 	// java.nio.channels.spi.AbstractSelectableChannel.removeKey(AbstractSelectableChannel.java:111)
 	private ConcurrentSkipListSet<IOService<?>> forCompletion =
-		new ConcurrentSkipListSet<IOService<?>>(new IOServiceComparator());
+			new ConcurrentSkipListSet<IOService<?>>(new IOServiceComparator());
 
 	//~--- constructors ---------------------------------------------------------
 
@@ -231,13 +231,13 @@ public class SocketThread implements Runnable {
 
 	public void removeSocketServicePriv(IOService<?> s) {
 		waiting.remove(s);
-		
+
 		SelectionKey key = s.getSocketChannel().keyFor(clientsSel);
 		if ((key != null) && (key.attachment() == s)) {
 			key.cancel();
 		}
 	}
-	
+
 	@SuppressWarnings({ "unchecked" })
 	@Override
 	public void run() {
@@ -581,14 +581,14 @@ public class SocketThread implements Runnable {
 						}    // end of else
 					}
 				} catch (ExecutionException e) {
-					log.log(Level.WARNING, "Protocol execution exception.", e);
+					log.log(Level.WARNING, "Protocol execution exception.", e.getCause());
 
 					// TODO: Do something with this
 				}        // end of catch
-						catch (InterruptedException e) {
+				catch (InterruptedException e) {
 					log.log(Level.WARNING, "Protocol execution interrupted.", e);
 				}        // end of try-catch
-						catch (Exception e) {
+				catch (Exception e) {
 					log.log(Level.WARNING, "Protocol execution unknown exception.", e);
 				}        // end of catch
 			}          // end of for ()
