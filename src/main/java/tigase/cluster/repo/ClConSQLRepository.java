@@ -34,8 +34,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -49,16 +51,18 @@ import java.util.logging.Logger;
 @Repository.Meta( supportedUris = { "jdbc:[^:]+:.*" } )
 @Repository.SchemaId(id = Schema.SERVER_SCHEMA_ID, name = Schema.SERVER_SCHEMA_NAME)
 public class ClConSQLRepository
-				extends ClConConfigRepository
-				implements ClusterRepoConstants, ComponentRepositoryDataSourceAware<ClusterRepoItem,DataRepository> {
+		extends ClConConfigRepository
+		implements ClusterRepoConstants, ComponentRepositoryDataSourceAware<ClusterRepoItem,DataRepository> {
 	/**
 	 * Private logger for class instances.
 	 */
 	private static final Logger log = Logger.getLogger(ClConSQLRepository.class.getName());
+
+	private static final Calendar UTC_CALENDAR = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
 	//J-
 	/* @formatter:off */
 	private static final String GET_ITEM_QUERY =
-					"select "
+			"select "
 					+ HOSTNAME_COLUMN + ", "
 					+ SECONDARY_HOSTNAME_COLUMN + ", "
 					+ PASSWORD_COLUMN + ", "
@@ -68,7 +72,7 @@ public class ClConSQLRepository
 					+ MEM_USAGE_COLUMN
 					+ " from " + TABLE_NAME + " where " + HOSTNAME_COLUMN + " = ?";
 	private static final String GET_ALL_ITEMS_QUERY =
-					"select "
+			"select "
 					+ HOSTNAME_COLUMN + ", "
 					+ SECONDARY_HOSTNAME_COLUMN + ", "
 					+ PASSWORD_COLUMN + ", "
@@ -78,9 +82,9 @@ public class ClConSQLRepository
 					+ MEM_USAGE_COLUMN
 					+ " from " + TABLE_NAME;
 	private static final String DELETE_ITEM_QUERY =
-					"delete from " + TABLE_NAME + " where (" + HOSTNAME_COLUMN + " = ?)";
+			"delete from " + TABLE_NAME + " where (" + HOSTNAME_COLUMN + " = ?)";
 	private static final String INSERT_ITEM_QUERY =
-					"insert into " + TABLE_NAME + " ("
+			"insert into " + TABLE_NAME + " ("
 					+ HOSTNAME_COLUMN + ", "
 					+ SECONDARY_HOSTNAME_COLUMN + ", "
 					+ PASSWORD_COLUMN + ", "
@@ -92,7 +96,7 @@ public class ClConSQLRepository
 					+ " (select ?, ?, ?, ?, ?, ?, ? from " + TABLE_NAME
 					+ " WHERE " + HOSTNAME_COLUMN + "=? HAVING count(*)=0)";
 	private static final String UPDATE_ITEM_QUERY =
-					"update " + TABLE_NAME + " set "
+			"update " + TABLE_NAME + " set "
 					+ HOSTNAME_COLUMN + "= ?, "
 					+ SECONDARY_HOSTNAME_COLUMN + "= ?, "
 					+ PASSWORD_COLUMN + "= ?, "
@@ -115,7 +119,7 @@ public class ClConSQLRepository
 		// in other places, so we can not destroy it.
 		super.destroy();
 	}
-	
+
 	//~--- get methods ----------------------------------------------------------
 
 	@Deprecated
@@ -153,7 +157,7 @@ public class ClConSQLRepository
 	@Deprecated
 	@Override
 	public void initRepository(String conn_str, Map<String, String> params)
-					throws DBInitException {
+			throws DBInitException {
 		super.initRepository(conn_str, params);
 		try {
 			data_repo = RepositoryFactory.getDataRepository(null, conn_str, params);
@@ -199,7 +203,7 @@ public class ClConSQLRepository
 				updateItemSt.setString(1, item.getHostname());
 				updateItemSt.setString(2, item.getSecondaryHostname());
 				updateItemSt.setString(3, item.getPassword());
-				updateItemSt.setTimestamp(4, new Timestamp(date.getTime()));
+				updateItemSt.setTimestamp(4, new Timestamp(date.getTime()), UTC_CALENDAR);
 				updateItemSt.setInt(5, item.getPortNo());
 				updateItemSt.setFloat(6, item.getCpuUsage());
 				updateItemSt.setFloat(7, item.getMemUsage());
@@ -211,7 +215,7 @@ public class ClConSQLRepository
 				insertItemSt.setString(1, item.getHostname());
 				insertItemSt.setString(2, item.getSecondaryHostname());
 				insertItemSt.setString(3, item.getPassword());
-				insertItemSt.setTimestamp(4, new Timestamp(date.getTime()));
+				insertItemSt.setTimestamp(4, new Timestamp(date.getTime()), UTC_CALENDAR);
 				insertItemSt.setInt(5, item.getPortNo());
 				insertItemSt.setFloat(6, item.getCpuUsage());
 				insertItemSt.setFloat(7, item.getMemUsage());
@@ -244,7 +248,7 @@ public class ClConSQLRepository
 			ResultSet rs = null;
 			PreparedStatement getAllItemsSt = data_repo.getPreparedStatement(null,
 					GET_ALL_ITEMS_QUERY);
-			
+
 			synchronized (getAllItemsSt) {
 				try {
 					rs = getAllItemsSt.executeQuery();
@@ -254,7 +258,7 @@ public class ClConSQLRepository
 						item.setHostname(rs.getString(HOSTNAME_COLUMN));
 						item.setSecondaryHostname(rs.getString(SECONDARY_HOSTNAME_COLUMN));
 						item.setPassword(rs.getString(PASSWORD_COLUMN));
-						item.setLastUpdate(rs.getTimestamp(LASTUPDATE_COLUMN).getTime());
+						item.setLastUpdate(rs.getTimestamp(LASTUPDATE_COLUMN, UTC_CALENDAR).getTime());
 						item.setPort(rs.getInt(PORT_COLUMN));
 						item.setCpuUsage(rs.getFloat(CPU_USAGE_COLUMN));
 						item.setMemUsage(rs.getFloat(MEM_USAGE_COLUMN));
