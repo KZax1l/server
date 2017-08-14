@@ -55,20 +55,14 @@ public final class XMPPServer {
 
 	@SuppressWarnings("PMD")
 	/** property allowing setting up configurator implementation of
-	 * {@link ConfiguratorAbstract} used in Tigase.
+	 * {@link tigase.conf.ConfiguratorAbstract} used in Tigase.
 	 */
 	public static final String CONFIGURATOR_PROP_KEY = "tigase-configurator";
 
 	/** default configurator implementation of
-	 * {@link ConfiguratorAbstract} used in Tigase, which is
+	 * {@link tigase.conf.ConfiguratorAbstract} used in Tigase, which is
 	 * tigase.conf.Configurator. */
 	private static final String DEF_CONFIGURATOR = "tigase.conf.Configurator";
-	public static final String HARDENED_MODE_KEY = "hardened-mode";
-
-	public static boolean isHardenedModeEnabled() {
-		return System.getProperty( XMPPServer.HARDENED_MODE_KEY ) == null ? false
-					 : Boolean.getBoolean( XMPPServer.HARDENED_MODE_KEY );
-	}
 
 	/** Field description */
 	public static final String NAME = "Tigase";
@@ -102,9 +96,9 @@ public final class XMPPServer {
 	 */
 	public static String help() {
 		return "\n" + "Parameters:\n"
-					 + " -h               this help message\n"
-					 + " -v               prints server version info\n"
-					 + " -n server-name    sets server name\n";
+				+ " -h               this help message\n"
+				+ " -v               prints server version info\n"
+				+ " -n server-name    sets server name\n";
 	}
 
 	/**
@@ -128,10 +122,10 @@ public final class XMPPServer {
 
 		if ( !isOSGi() ){
 			String initial_config
-						 = "tigase.level=ALL\n" + "tigase.xml.level=INFO\n"
-							 + "handlers=java.util.logging.ConsoleHandler\n"
-							 + "java.util.logging.ConsoleHandler.level=ALL\n"
-							 + "java.util.logging.ConsoleHandler.formatter=tigase.util.LogFormatter\n";
+					= "tigase.level=ALL\n" + "tigase.xml.level=INFO\n"
+					+ "handlers=java.util.logging.ConsoleHandler\n"
+					+ "java.util.logging.ConsoleHandler.level=ALL\n"
+					+ "java.util.logging.ConsoleHandler.formatter=tigase.util.LogFormatter\n";
 
 			ConfiguratorAbstract.loadLogManagerConfig( initial_config );
 		}
@@ -143,10 +137,10 @@ public final class XMPPServer {
 			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd' 'HH:mm:ss.SSS");
 			if (ServerBeanSelector.getConfigType(bootstrap.getKernel()) == ConfigTypeEnum.SetupMode) {
 				System.out.println("== " + sdf.format(new Date()) +
-										   " Please setup server at http://localhost:8080/\n");
+						" Please setup server at http://localhost:8080/\n");
 			} else {
 				System.out.println("== " + sdf.format(new Date()) +
-										   " Server finished starting up and (if there wasn't any error) is ready to use\n");
+						" Server finished starting up and (if there wasn't any error) is ready to use\n");
 			}
 		} catch ( ConfigReader.UnsupportedOperationException e ) {
 			TigaseRuntime.getTigaseRuntime().shutdownTigase(new String[] {
@@ -183,10 +177,10 @@ public final class XMPPServer {
 	}
 
 	/**
-	 * Allows obtaining {@link ConfiguratorAbstract} implementation
+	 * Allows obtaining {@link tigase.conf.ConfiguratorAbstract} implementation
 	 * used by Tigase to handle all configuration of the server.
 	 *
-	 * @return implementation of {@link ConfiguratorAbstract}
+	 * @return implementation of {@link tigase.conf.ConfiguratorAbstract}
 	 *         interface.
 	 */
 //	@Deprecated
@@ -265,7 +259,7 @@ public final class XMPPServer {
 	 */
 	public static String version() {
 		return "\n" + "-- \n" + NAME + " XMPP Server, version: " + getImplementationVersion()
-					 + "\n" + "Author:  Artur Hefczyc <artur.hefczyc@tigase.org>\n" + "-- \n";
+				+ "\n" + "Author:  Artur Hefczyc <artur.hefczyc@tigase.org>\n" + "-- \n";
 	}
 }    // XMPPServer
 

@@ -26,22 +26,21 @@ package tigase.io;
 
 import tigase.server.Lifecycle;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
 import java.io.File;
 import java.security.KeyStore;
 import java.security.cert.CertificateParsingException;
 import java.util.Map;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-
 //~--- interfaces -------------------------------------------------------------
 
 /**
  * Describe interface SSLContextContainerIfc here.
- * 
- * 
+ *
+ *
  * Created: Tue Nov 20 11:43:32 2007
- * 
+ *
  * @author <a href="mailto:artur.hefczyc@tigase.org">Artur Hefczyc</a>
  * @version $Rev$
  */
@@ -61,7 +60,7 @@ public interface SSLContextContainerIfc extends Lifecycle {
 	 * Constant <code>ALLOW_INVALID_CERTS_VAL</code> is a default configuration
 	 * parameter specifying if invalid certificates are acceptable by the
 	 * server.
-	 * 
+	 *
 	 */
 	public static final String ALLOW_INVALID_CERTS_VAL = "false";
 
@@ -140,7 +139,7 @@ public interface SSLContextContainerIfc extends Lifecycle {
 	/**
 	 * Constant <code>SERVER_CERTS_DIR_VAL</code> is a default directory name
 	 * where all certificate files are stored.
-	 * 
+	 *
 	 */
 	public static final String SERVER_CERTS_LOCATION_VAL = "certs/";
 
@@ -205,7 +204,7 @@ public interface SSLContextContainerIfc extends Lifecycle {
 	 * certificates for new virtual domain. The method should add new
 	 * certificates or replace existing one if there is already a certificate
 	 * for a domain.
-	 * 
+	 *
 	 * @param params
 	 *            a <code>Map</code> value with configuration parameters.
 	 * @throws CertificateParsingException
@@ -221,7 +220,7 @@ public interface SSLContextContainerIfc extends Lifecycle {
 	 * associated with this domain (hostname) should be used. If there is no
 	 * specific certificate for a given domain then default certificate should
 	 * be used.
-	 * 
+	 *
 	 * @param protocol
 	 *            a <code>String</code> is either 'SSL' or 'TLS' value.
 	 * @param hostname
@@ -257,12 +256,15 @@ public interface SSLContextContainerIfc extends Lifecycle {
 
 	/**
 	 * Returns a trust store with all trusted certificates.
-	 * 
+	 *
 	 * @return a KeyStore with all trusted certificates, the KeyStore can be
 	 *         empty but cannot be null.
 	 */
 	KeyStore getTrustStore();
 
+	String[] getEnabledCiphers();
+
+	String[] getEnabledProtocols();
 }
 
 // ~ Formatted in Sun Code Convention

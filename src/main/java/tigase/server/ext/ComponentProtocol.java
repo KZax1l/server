@@ -56,8 +56,8 @@ import java.util.logging.Logger;
  * @version $Rev$
  */
 public class ComponentProtocol
-				extends ConnectionManager<ComponentIOService>
-				implements ComponentProtocolHandler {
+		extends ConnectionManager<ComponentIOService>
+		implements ComponentProtocolHandler {
 	/** Field description */
 	public static final String AUTHENTICATION_TIMEOUT_PROP_KEY = "auth-timeout";
 
@@ -113,7 +113,7 @@ public class ComponentProtocol
 	 */
 	private Map<String, CopyOnWriteArrayList<ComponentConnection>> connections =
 			new ConcurrentHashMap<String, CopyOnWriteArrayList<ComponentConnection>>();
-	@ConfigField(desc = "Hostnames to bind", alias = HOSTNAMES_PROP_KEY)
+	@ConfigField(desc = "Hostnames to bind", alias = EXTCOMP_BIND_HOSTNAMES_PROP_KEY)
 	private String[]                          hostnamesToBind           = new String[0];
 	@ConfigField(desc = "Max number of authentication attempts", alias = MAX_AUTH_ATTEMPTS_PROP_KEY)
 	private int                               maxAuthenticationAttempts = 1;
@@ -409,7 +409,7 @@ public class ComponentProtocol
 		addPacket(packet);
 		return true;
 	}
-	
+
 	@Override
 	public void reconnectionFailed(Map<String, Object> port_props) {
 
@@ -438,7 +438,7 @@ public class ComponentProtocol
 		} else {
 			if ( log.isLoggable( Level.FINEST ) ){
 				log.log( Level.FINEST, "cid: {0}, sending: {1}, sessionData: {2}",
-								 new Object[] { serv.getSessionData().get( "cid" ), result, serv.getSessionData() } );
+						new Object[] { serv.getSessionData().get( "cid" ), result, serv.getSessionData() } );
 			}
 			result = handler.serviceStarted(serv);
 		}
@@ -472,7 +472,7 @@ public class ComponentProtocol
 					// Nothing to do, let's log this however.
 					log.finer(
 							"Closing XMPPIOService has not yet set ComponentConnection as RefObject: " +
-							hostname + ", id: " + service.getUniqueId());
+									hostname + ", id: " + service.getUniqueId());
 				}
 			} else {
 
@@ -724,7 +724,7 @@ public class ComponentProtocol
 	//~--- methods --------------------------------------------------------------
 
 	private synchronized void addComponentConnection(String hostname,
-			ComponentIOService s) {
+													 ComponentIOService s) {
 		ComponentConnection       conn      = new ComponentConnection(hostname, s);
 		List<ComponentConnection> refObject = s.getRefObject();
 
@@ -776,7 +776,7 @@ public class ComponentProtocol
 	}
 
 	private synchronized boolean removeComponentConnection(String hostname,
-			ComponentConnection conn) {
+														   ComponentConnection conn) {
 		boolean                                   result = false;
 		CopyOnWriteArrayList<ComponentConnection> conns  = connections.get(hostname);
 
@@ -851,7 +851,7 @@ public class ComponentProtocol
 	//~--- inner classes --------------------------------------------------------
 
 	private class AuthenticationTimerTask
-					extends tigase.util.TimerTask {
+			extends tigase.util.TimerTask {
 		private ComponentIOService serv = null;
 
 		//~--- constructors -------------------------------------------------------

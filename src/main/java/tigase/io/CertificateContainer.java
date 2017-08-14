@@ -47,7 +47,7 @@ import static tigase.io.SSLContextContainerIfc.*;
 
 /**
  * Class used to keep SSL certificates loaded in memory. To get instance use getter from TLSUtil class.
- * <p>
+ *
  * Created by andrzej on 29.02.2016.
  */
 @Bean(name = "certificate-container", parent = Kernel.class, active = true, exportable = true)
@@ -64,24 +64,24 @@ public class CertificateContainer implements CertificateContainerIfc, Initializa
     private String ou = "XMPP Service";
 
     private Map<String, KeyManagerFactory> kmfs = new ConcurrentSkipListMap<String, KeyManagerFactory>();
-    private KeyManager[] kms = new KeyManager[]{new SniKeyManager()};
-    private X509TrustManager[] tms = new X509TrustManager[]{new FakeTrustManager()};
+    private KeyManager[] kms = new KeyManager[] { new SniKeyManager() };
+    private X509TrustManager[] tms = new X509TrustManager[] { new FakeTrustManager() };
     private KeyStore trustKeyStore = null;
 
-    @ConfigField(desc = "Alias for default certificate")
+    @ConfigField(desc = "Alias for default certificate", alias = DEFAULT_DOMAIN_CERT_KEY)
     private String def_cert_alias = DEFAULT_DOMAIN_CERT_VAL;
     private File[] certsDirs = null;
     private char[] emptyPass = new char[0];
 
-    @ConfigField(desc = "Disable SNI support")
+    @ConfigField(desc = "Disable SNI support", alias = SNI_DISABLE_KEY)
     private boolean sniDisable = false;
-    @ConfigField(desc = "Location of server SSL certificates")
-    private String[] sslCertsLocation = {SERVER_CERTS_LOCATION_VAL};
-    @ConfigField(desc = "Location of trusted certificates")
-    private String[] trustedCertsDir = {TRUSTED_CERTS_DIR_VAL};
+    @ConfigField(desc = "Location of server SSL certificates", alias = SERVER_CERTS_LOCATION_KEY)
+    private String[] sslCertsLocation = { SERVER_CERTS_LOCATION_VAL };
+    @ConfigField(desc = "Location of trusted certificates", alias = TRUSTED_CERTS_DIR_KEY)
+    private String[] trustedCertsDir = { TRUSTED_CERTS_DIR_VAL };
 
     @ConfigField(desc = "Custom certificates")
-    private Map<String, String> customCerts = new HashMap<>();
+    private Map<String,String> customCerts = new HashMap<>();
 
     private KeyManagerFactory addCertificateEntry(CertificateEntry entry, String alias, boolean store)
             throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException, UnrecoverableKeyException {
@@ -232,8 +232,8 @@ public class CertificateContainer implements CertificateContainerIfc, Initializa
                     CertificateEntry certEntry = CertificateUtil.loadCertificate(entry.getValue());
                     String alias = entry.getKey();
                     addCertificateEntry(certEntry, alias, false);
-                    log.log(Level.CONFIG, "Loaded server certificate for domain: {0} from file: {1}", new Object[]{alias,
-                            entry.getValue()});
+                    log.log(Level.CONFIG, "Loaded server certificate for domain: {0} from file: {1}", new Object[] { alias,
+                            entry.getValue() });
                 } catch (Exception ex) {
                     log.log(Level.WARNING, "Cannot load certficate from file: " + entry.getValue(), ex);
                 }
@@ -255,8 +255,8 @@ public class CertificateContainer implements CertificateContainerIfc, Initializa
                             alias = alias.substring(0, alias.length() - 4);
 
                         addCertificateEntry(certEntry, alias, false);
-                        log.log(Level.CONFIG, "Loaded server certificate for domain: {0} from file: {1}", new Object[]{alias,
-                                file});
+                        log.log(Level.CONFIG, "Loaded server certificate for domain: {0} from file: {1}", new Object[] { alias,
+                                file });
                     } catch (Exception ex) {
                         log.log(Level.WARNING, "Cannot load certficate from file: " + file, ex);
                     }
@@ -363,12 +363,12 @@ public class CertificateContainer implements CertificateContainerIfc, Initializa
             log.log(Level.WARNING, "Can't generate fake trusted CA certificate", e);
         }
 
-        tms = new X509TrustManager[]{new FakeTrustManager(
-                acceptedIssuers.toArray(new X509Certificate[acceptedIssuers.size()]))};
+        tms = new X509TrustManager[] { new FakeTrustManager(
+                acceptedIssuers.toArray(new X509Certificate[acceptedIssuers.size()])) };
 
         long seconds = (System.currentTimeMillis() - start) / 1000;
 
-        log.log(Level.CONFIG, "Loaded {0} trust certificates, it took {1} seconds.", new Object[]{counter, seconds});
+        log.log(Level.CONFIG, "Loaded {0} trust certificates, it took {1} seconds.", new Object[] { counter, seconds });
     }
 
     @Override
@@ -387,8 +387,8 @@ public class CertificateContainer implements CertificateContainerIfc, Initializa
                     CertificateEntry certEntry = CertificateUtil.loadCertificate(file);
                     String alias = entry.getKey();
                     addCertificateEntry(certEntry, alias, false);
-                    log.log(Level.CONFIG, "Loaded server certificate for domain: {0} from file: {1}", new Object[]{alias,
-                            entry.getValue()});
+                    log.log(Level.CONFIG, "Loaded server certificate for domain: {0} from file: {1}", new Object[] { alias,
+                            entry.getValue() });
                 } catch (Exception ex) {
                     log.log(Level.WARNING, "Cannot load certficate from file: " + entry.getValue(), ex);
                 }
@@ -406,8 +406,8 @@ public class CertificateContainer implements CertificateContainerIfc, Initializa
                             alias = alias.substring(0, alias.length() - 4);
 
                         addCertificateEntry(certEntry, alias, false);
-                        log.log(Level.CONFIG, "Loaded server certificate for domain: {0} from file: {1}", new Object[]{alias,
-                                file});
+                        log.log(Level.CONFIG, "Loaded server certificate for domain: {0} from file: {1}", new Object[] { alias,
+                                file });
                     } catch (Exception ex) {
                         log.log(Level.WARNING, "Cannot load certficate from file: " + file, ex);
                     }
@@ -464,6 +464,7 @@ public class CertificateContainer implements CertificateContainerIfc, Initializa
 
         /**
          * Constructs ...
+         *
          */
         FakeTrustManager() {
             this(new X509Certificate[0]);
@@ -471,6 +472,7 @@ public class CertificateContainer implements CertificateContainerIfc, Initializa
 
         /**
          * Constructs ...
+         *
          *
          * @param ai
          */
@@ -618,7 +620,7 @@ public class CertificateContainer implements CertificateContainerIfc, Initializa
                 }
             }
 
-            return kmf != null ? ((X509KeyManager) kmf.getKeyManagers()[0]).getPrivateKey(alias) : null;
+            return kmf != null ? ((X509KeyManager) kmf.getKeyManagers()[0]).getPrivateKey(alias) : null ;
         }
 
     }

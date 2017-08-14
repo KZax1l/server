@@ -54,8 +54,8 @@ import java.util.logging.Logger;
 @ConfigType({ConfigTypeEnum.DefaultMode, ConfigTypeEnum.ConnectionManagersMode})
 @ClusterModeRequired(active = true)
 public class WebSocketClientConnectionClustered
-				extends WebSocketClientConnectionManager
-				implements ClusteredComponentIfc {
+		extends WebSocketClientConnectionManager
+		implements ClusteredComponentIfc {
 	/**
 	 * Variable <code>log</code> is a class logger.
 	 */
@@ -65,18 +65,18 @@ public class WebSocketClientConnectionClustered
 	//~--- fields ---------------------------------------------------------------
 
 	private SeeOtherHostIfc see_other_host_strategy = null;
-    private EventListener<ClusterConnectionManager.ClusterInitializedEvent> clusterEventHandler = null;
+	private EventListener<ClusterConnectionManager.ClusterInitializedEvent> clusterEventHandler = null;
 
 	//~--- methods --------------------------------------------------------------
 
 	public WebSocketClientConnectionClustered() {
-		delayPortListening = System.getProperty("client-" + PORT_LISTENING_DELAY_KEY) == null ? true : Boolean.getBoolean("client-" + PORT_LISTENING_DELAY_KEY);
+		delayPortListening = true;
 	}
 
 	@Override
 	protected void onNodeConnected(JID jid) {
 		super.onNodeConnected(jid);
-		
+
 		List<JID> connectedNodes = getNodesConnectedWithLocal();
 		if (see_other_host_strategy != null) {
 			see_other_host_strategy.setNodes(connectedNodes);
@@ -91,7 +91,7 @@ public class WebSocketClientConnectionClustered
 		if (see_other_host_strategy != null) {
 			see_other_host_strategy.setNodes(connectedNodes);
 		}
-		
+
 		// }
 		final String hostname = jid.getDomain();
 
@@ -138,19 +138,19 @@ public class WebSocketClientConnectionClustered
 	}
 
 	@Override
-    public void start() {
-        super.start();
+	public void start() {
+		super.start();
 
-        if (clusterEventHandler == null) {
-            clusterEventHandler = (ClusterConnectionManager.ClusterInitializedEvent event) -> {
+		if (clusterEventHandler == null) {
+			clusterEventHandler = (ClusterConnectionManager.ClusterInitializedEvent event) -> {
 				WebSocketClientConnectionClustered.this.connectWaitingTasks();
 				log.log(Level.WARNING, "Starting listening on ports of component: {0}",
 						WebSocketClientConnectionClustered.this.getName());
 				eventBus.removeListener(clusterEventHandler);
-            };
-        }
+			};
+		}
 
-        eventBus.addListener(ClusterConnectionManager.ClusterInitializedEvent.class, clusterEventHandler);
+		eventBus.addListener(ClusterConnectionManager.ClusterInitializedEvent.class, clusterEventHandler);
 
 		if (delayPortListening) {
 			addTimerTask(new TimerTask() {
@@ -163,11 +163,11 @@ public class WebSocketClientConnectionClustered
 		}
 	}
 
-    @Override
-    public void stop() {
-        super.stop();
-        eventBus.removeListener(clusterEventHandler);
-        clusterEventHandler = null;
-    }
+	@Override
+	public void stop() {
+		super.stop();
+		eventBus.removeListener(clusterEventHandler);
+		clusterEventHandler = null;
+	}
 
 }

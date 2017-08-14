@@ -22,6 +22,7 @@
 package tigase.server.websocket;
 
 import tigase.kernel.beans.Bean;
+import tigase.kernel.beans.config.ConfigField;
 import tigase.util.Base64;
 
 import java.io.IOException;
@@ -39,32 +40,33 @@ import static tigase.server.websocket.WebSocketXMPPIOService.State.closing;
  * Class implements Hybi (RFC compatible) version of WebSocket protocol specification
  * which is used in connection handshaking as well as in frameing/deframing of
  * data sent over WebSocket connection
- * 
+ *
  * @see <a href="http://tools.ietf.org/html/draft-ietf-hybi-thewebsocketprotocol-13">WebSocket HyBi specification</a>
- * 
+ *
  * @author andrzej
  */
 @Bean(name = "hybiProtocol", parent = WebSocketClientConnectionManager.class, active = true)
 public class WebSocketHybi implements WebSocketProtocolIfc {
 
 	private static final Logger log = Logger.getLogger(WebSocketHybi.class.getCanonicalName());
-	
+
 	public static final String ID = "hybi";
-	
-	private static final String GUID           = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";	
+
+	private static final String GUID           = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 	private static final String RESPONSE_HEADER =
-		"HTTP/1.1 101 Switching Protocols\r\n" + "Upgrade: websocket\r\n" +
-		"Connection: Upgrade\r\n" + "Access-Control-Allow-Origin: *\r\n" +
-		// Removed header below as it creates issues with connectivity using IE11 
+			"HTTP/1.1 101 Switching Protocols\r\n" + "Upgrade: websocket\r\n" +
+					"Connection: Upgrade\r\n" + "Access-Control-Allow-Origin: *\r\n" +
+					// Removed header below as it creates issues with connectivity using IE11
 //		"Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n" +
-		"Access-Control-Allow-Headers: Content-Type\r\n" +
-		"Access-Control-Max-Age: 86400\r\n";
+					"Access-Control-Allow-Headers: Content-Type\r\n" +
+					"Access-Control-Max-Age: 86400\r\n";
 
 	private static final String WS_ACCEPT_KEY   = "Sec-WebSocket-Accept";
 	private static final String WS_KEY_KEY      = "Sec-WebSocket-Key";
 
 	private static final String CLOSE_CODE = "close-code";
-	private static final boolean ALLOW_UNMASKED_FROM_CLIENT = Boolean.getBoolean("ws-allow-unmasked-frames");
+	@ConfigField(desc = "Allow for unmasked frames send from client", alias = "ws-allow-unmasked-frames")
+	private boolean allowUnmaskedFromClient = false;
 	private static final int PROTOCOL_ERROR = 1003;
 
 	private static byte[] EMPTY = new byte[0];
@@ -73,13 +75,13 @@ public class WebSocketHybi implements WebSocketProtocolIfc {
 	public String getId() {
 		return ID;
 	}
-	
+
 	@Override
 	public boolean handshake(WebSocketXMPPIOService service, Map<String, String> headers, byte[] buf) throws NoSuchAlgorithmException, IOException {
 		if (!headers.containsKey(WS_VERSION_KEY)) {
 			return false;
 		}
-		
+
 		StringBuilder response = new StringBuilder(RESPONSE_HEADER.length() * 2);
 		response.append(RESPONSE_HEADER);
 
@@ -102,7 +104,7 @@ public class WebSocketHybi implements WebSocketProtocolIfc {
 		response.append("\r\n");
 		service.maskingKey = new byte[4];
 		service.writeRawData(response.toString());
-			
+
 		return true;
 	}
 
@@ -120,7 +122,7 @@ public class WebSocketHybi implements WebSocketProtocolIfc {
 		byte type      = 0x00;
 		int position   = buf.position();
 		ByteBuffer unmasked = null;
-		
+
 		try {
 			if (service.frameLength == -1) {
 				type = buf.get();
@@ -128,7 +130,7 @@ public class WebSocketHybi implements WebSocketProtocolIfc {
 
 					// close request
 					if (log.isLoggable(Level.FINEST)) {
-						log.log(Level.FINEST, "Socket: {0}, closing connection due to client request {1}", 
+						log.log(Level.FINEST, "Socket: {0}, closing connection due to client request {1}",
 								new Object[] { service, String.format("%02X ", type) });
 					}
 					service.setState(closing);
@@ -142,7 +144,7 @@ public class WebSocketHybi implements WebSocketProtocolIfc {
 
 				// check if content is masked
 				masked = (b2 & 0x80) == 0x80;
-				if (!masked && !ALLOW_UNMASKED_FROM_CLIENT) {
+				if (!masked && !allowUnmaskedFromClient) {
 					if (log.isLoggable(Level.FINEST)) {
 						log.log(Level.FINEST, "Socket: {0}, closing connection due to protocol error - unmasked frame sent by client {1}",
 								new Object[] { service, String.format("%02X ", type) });
@@ -244,9 +246,9 @@ public class WebSocketHybi implements WebSocketProtocolIfc {
 		// send frame header
 		service.writeBytes(bbuf);
 
-		service.writeBytes(buf);							
+		service.writeBytes(buf);
 	}
-	
+
 	@Override
 	public void closeConnection(WebSocketXMPPIOService service) {
 		if (!service.isConnected())
@@ -286,13 +288,13 @@ public class WebSocketHybi implements WebSocketProtocolIfc {
 				break;
 		}
 	}
-	
+
 	/**
 	 * Create WebSocket frame header with specific type and size
 	 *
 	 * @param type
 	 * @param size
-	 * 
+	 *
 	 */
 	private ByteBuffer createFrameHeader(byte type, int size) {
 		ByteBuffer bbuf = ByteBuffer.allocate(12);
@@ -310,5 +312,5 @@ public class WebSocketHybi implements WebSocketProtocolIfc {
 		bbuf.flip();
 
 		return bbuf;
-	}	
+	}
 }

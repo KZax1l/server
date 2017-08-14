@@ -81,13 +81,13 @@ import java.util.logging.Logger;
  * @version $Rev$
  */
 public abstract class IOService<RefObject>
-				implements Callable<IOService<?>>, TLSEventHandler,
-				IOListener {
+		implements Callable<IOService<?>>, TLSEventHandler,
+		IOListener {
 	/**
 	 * Field description
 	 */
 	public static final String CERT_CHECK_RESULT = "cert-check-result";
-	
+
 	/**
 	 * Field description
 	 */
@@ -216,7 +216,7 @@ public abstract class IOService<RefObject>
 			log.log(Level.FINER,
 					"Problem connecting to remote host: {0}, address: {1}, socket: {2} - exception: {3}, session data: {4}",
 					new Object[] { host,
-					remote_address, sock_str, e, sessionData });
+							remote_address, sock_str, e, sessionData });
 
 			throw e;
 		}
@@ -266,7 +266,7 @@ public abstract class IOService<RefObject>
 				? this
 				: null;
 	}
-	
+
 	@Override
 	public boolean checkBufferLimit(int bufferSize) {
 		return (bufferLimit == 0 || bufferSize <= bufferLimit);
@@ -276,7 +276,7 @@ public abstract class IOService<RefObject>
 	 * Method description
 	 *
 	 *
-	 * 
+	 *
 	 */
 	public ConnectionType connectionType() {
 		return this.connectionType;
@@ -332,7 +332,7 @@ public abstract class IOService<RefObject>
 	public void handshakeCompleted(TLSWrapper wrapper) {
 		String reqCertDomain = (String) getSessionData().get(CERT_REQUIRED_DOMAIN);
 		CertCheckResult certCheckResult = wrapper.getCertificateStatus(false, sslContextContainer);
-		if (reqCertDomain != null) { 
+		if (reqCertDomain != null) {
 			// if reqCertDomain is set then verify if certificate got from server
 			// is allowed for reqCertDomain
 			try {
@@ -341,7 +341,7 @@ public abstract class IOService<RefObject>
 				if (certs != null && certs.length > 0) {
 					Certificate peerCert = certs[0];
 					if (log.isLoggable(Level.FINEST)) {
-						log.log(Level.FINEST, "{0}, TLS handshake veryfing if certificate from connection matches domain {1}", 
+						log.log(Level.FINEST, "{0}, TLS handshake veryfing if certificate from connection matches domain {1}",
 								new Object[]{this, reqCertDomain});
 					}
 					if (!CertificateUtil.verifyCertificateForDomain((X509Certificate) peerCert, reqCertDomain)) {
@@ -410,13 +410,15 @@ public abstract class IOService<RefObject>
 		int port = 0;
 		if (clientMode) {
 			tls_hostname = (String) this.getSessionData().get("remote-host");
-			if (tls_hostname == null) 
+			if (tls_hostname == null)
 				tls_hostname = (String) this.getSessionData().get("remote-hostname");
 			port = ((InetSocketAddress) socketIO.getSocketChannel().getRemoteAddress()).getPort();
 		}
 
 		SSLContext sslContext = sslContextContainer.getSSLContext("SSL", tls_hostname, clientMode, x509TrustManagers);
-		TLSWrapper wrapper = new TLSWrapper(sslContext, this, tls_hostname, port, clientMode, wantClientAuth, needClientAuth);
+		TLSWrapper wrapper = new TLSWrapper(sslContext, this, tls_hostname, port, clientMode, wantClientAuth,
+				needClientAuth, sslContextContainer.getEnabledCiphers(),
+				sslContextContainer.getEnabledProtocols());
 
 		socketIO = new TLSIO(socketIO, wrapper, byteOrder());
 		setLastTransferTime();
@@ -457,18 +459,20 @@ public abstract class IOService<RefObject>
 				port = ((InetSocketAddress) socketIO.getSocketChannel().getRemoteAddress()).getPort();
 				if (tls_hostname == null) {
 					tls_hostname = (String) this.getSessionData().get("remote-host");
-					if (tls_hostname == null) 
+					if (tls_hostname == null)
 						tls_hostname = (String) this.getSessionData().get("remote-hostname");
 				}
 			}
-			
+
 			if (log.isLoggable(Level.FINEST)) {
 				log.log(Level.FINEST, "{0}, Starting TLS for domain: {1}", new Object[] { this,
 						tls_hostname });
 			}
 
 			SSLContext sslContext = sslContextContainer.getSSLContext("TLS", tls_hostname, clientMode, x509TrustManagers);
-			TLSWrapper wrapper = new TLSWrapper(sslContext, this, tls_hostname, port, clientMode, wantClientAuth, needClientAuth);
+			TLSWrapper wrapper = new TLSWrapper(sslContext, this, tls_hostname, port, clientMode, wantClientAuth,
+					needClientAuth, sslContextContainer.getEnabledCiphers(),
+					sslContextContainer.getEnabledProtocols());
 
 			socketIO = new TLSIO(socketIO, wrapper, byteOrder());
 			setLastTransferTime();
@@ -513,7 +517,7 @@ public abstract class IOService<RefObject>
 	 * Method description
 	 *
 	 *
-	 * 
+	 *
 	 */
 	public boolean waitingToRead() {
 		return true;
@@ -523,7 +527,7 @@ public abstract class IOService<RefObject>
 	 * Method description
 	 *
 	 *
-	 * 
+	 *
 	 */
 	public boolean waitingToSend() {
 		return socketIO.waitingToSend();
@@ -533,7 +537,7 @@ public abstract class IOService<RefObject>
 	 * Method description
 	 *
 	 *
-	 * 
+	 *
 	 */
 	public int waitingToSendSize() {
 		return socketIO.waitingToSendSize();
@@ -547,7 +551,7 @@ public abstract class IOService<RefObject>
 	 *
 	 * @param reset
 	 *
-	 * 
+	 *
 	 */
 	public long getBuffOverflow(boolean reset) {
 		return socketIO.getBuffOverflow(reset);
@@ -559,7 +563,7 @@ public abstract class IOService<RefObject>
 	 *
 	 * @param reset
 	 *
-	 * 
+	 *
 	 */
 	public long getBytesReceived(boolean reset) {
 		return socketIO.getBytesReceived(reset);
@@ -571,7 +575,7 @@ public abstract class IOService<RefObject>
 	 *
 	 * @param reset
 	 *
-	 * 
+	 *
 	 */
 	public long getBytesSent(boolean reset) {
 		return socketIO.getBytesSent(reset);
@@ -588,7 +592,7 @@ public abstract class IOService<RefObject>
 	 * Method description
 	 *
 	 *
-	 * 
+	 *
 	 */
 	public JID getDataReceiver() {
 		return this.dataReceiver;
@@ -598,7 +602,7 @@ public abstract class IOService<RefObject>
 	 * This method returns the time of last transfer in any direction
 	 * through this service. It is used to help detect dead connections.
 	 *
-	 * 
+	 *
 	 */
 	public long getLastTransferTime() {
 		return lastTransferTime;
@@ -608,7 +612,7 @@ public abstract class IOService<RefObject>
 	 * Method description
 	 *
 	 *
-	 * 
+	 *
 	 */
 	public String getLocalAddress() {
 		return local_address;
@@ -620,8 +624,8 @@ public abstract class IOService<RefObject>
 
 	/**
 	 * Method returns local port of opened socket
-	 * 
-	 * @return 
+	 *
+	 * @return
 	 */
 	public int getLocalPort() {
 		Socket sock = socketIO.getSocketChannel().socket();
@@ -632,7 +636,7 @@ public abstract class IOService<RefObject>
 	 * Method description
 	 *
 	 *
-	 * 
+	 *
 	 */
 	public long[] getReadCounters() {
 		return rdData;
@@ -642,7 +646,7 @@ public abstract class IOService<RefObject>
 	 * Method description
 	 *
 	 *
-	 * 
+	 *
 	 */
 	public RefObject getRefObject() {
 		return refObject;
@@ -662,7 +666,7 @@ public abstract class IOService<RefObject>
 	 * Method description
 	 *
 	 *
-	 * 
+	 *
 	 */
 	public ConcurrentMap<String, Object> getSessionData() {
 		return sessionData;
@@ -700,7 +704,7 @@ public abstract class IOService<RefObject>
 	 * Method description
 	 *
 	 *
-	 * 
+	 *
 	 */
 	public long getTotalBuffOverflow() {
 		return socketIO.getTotalBuffOverflow();
@@ -710,7 +714,7 @@ public abstract class IOService<RefObject>
 	 * Method description
 	 *
 	 *
-	 * 
+	 *
 	 */
 	public long getTotalBytesReceived() {
 		return socketIO.getTotalBytesReceived();
@@ -720,7 +724,7 @@ public abstract class IOService<RefObject>
 	 * Method description
 	 *
 	 *
-	 * 
+	 *
 	 */
 	public long getTotalBytesSent() {
 		return socketIO.getTotalBytesSent();
@@ -730,7 +734,7 @@ public abstract class IOService<RefObject>
 	 * Method description
 	 *
 	 *
-	 * 
+	 *
 	 */
 	public String getUniqueId() {
 		return id;
@@ -740,7 +744,7 @@ public abstract class IOService<RefObject>
 	 * Method description
 	 *
 	 *
-	 * 
+	 *
 	 */
 	public long[] getWriteCounters() {
 		return wrData;
@@ -780,7 +784,7 @@ public abstract class IOService<RefObject>
 	public void setBufferLimit(int bufferLimit) {
 		this.bufferLimit = bufferLimit;
 	}
-	
+
 	/**
 	 * @param connectionId the connectionId to set
 	 */
@@ -862,7 +866,7 @@ public abstract class IOService<RefObject>
 	 * Method description
 	 *
 	 *
-	 * 
+	 *
 	 */
 	protected ByteOrder byteOrder() {
 		return ByteOrder.BIG_ENDIAN;
@@ -924,7 +928,7 @@ public abstract class IOService<RefObject>
 	 * Method description
 	 *
 	 *
-	 * 
+	 *
 	 *
 	 * @throws IOException
 	 */
@@ -1007,7 +1011,7 @@ public abstract class IOService<RefObject>
 				if (log.isLoggable(Level.FINE)) {
 					log.log(Level.FINE, "Socket: {0}, Resizing socketInput down to {1} bytes.",
 							new Object[] { socketIO,
-							socketInputSize });
+									socketInputSize });
 				}
 				socketInput = ByteBuffer.allocate(socketInputSize);
 				socketInput.order(byteOrder());
@@ -1035,7 +1039,7 @@ public abstract class IOService<RefObject>
 					if (log.isLoggable(Level.FINEST)) {
 						log.log(Level.FINEST, "Socket: {0}, Reading network binary data: {1}",
 								new Object[] { socketIO,
-								socketIO.bytesRead() });
+										socketIO.bytesRead() });
 					}
 
 					// Restore the partial bytes for multibyte UTF8 characters
@@ -1076,7 +1080,7 @@ public abstract class IOService<RefObject>
 						if (log.isLoggable(Level.FINEST)) {
 							log.log(Level.FINEST, "Socket: {0}, resizing character buffer to: {1}",
 									new Object[] { socketIO,
-									tmpBuffer.remaining() });
+											tmpBuffer.remaining() });
 						}
 						cb = CharBuffer.allocate(tmpBuffer.remaining() * 4);
 					}
@@ -1093,7 +1097,7 @@ public abstract class IOService<RefObject>
 						if (log.isLoggable(Level.FINEST)) {
 							log.log(Level.FINEST, "Socket: {0}, Decoded character data: {1}",
 									new Object[] { socketIO,
-									new String(result) });
+											new String(result) });
 						}
 
 						// if (log.isLoggable(Level.FINEST)) {
@@ -1112,7 +1116,7 @@ public abstract class IOService<RefObject>
 						if (log.isLoggable(Level.FINEST)) {
 							log.log(Level.FINEST, "Socket: {0}, UTF-8 decoder data underflow: {1}",
 									new Object[] { socketIO,
-									tmpBuffer.remaining() });
+											tmpBuffer.remaining() });
 						}
 
 						// Save the partial bytes of a multibyte character such that they
@@ -1178,7 +1182,7 @@ public abstract class IOService<RefObject>
 	 * Method description
 	 *
 	 *
-	 * 
+	 *
 	 */
 	protected abstract int receivedPackets();
 
@@ -1324,21 +1328,21 @@ public abstract class IOService<RefObject>
 			writeInProgress.unlock();
 		}
 	}
-	
+
 	protected boolean isSocketServiceReady() {
 		return socketServiceReady;
 	}
-	
+
 	protected void setSocketServiceReady(boolean value) {
 		this.socketServiceReady = value;
-	}	
+	}
 
 	//~--- get methods ----------------------------------------------------------
 
 	/**
 	 * Method description
 	 *
-	 * 
+	 *
 	 */
 	protected boolean isInputBufferEmpty() {
 		return (socketInput != null) && (socketInput.remaining() == socketInput.capacity());
@@ -1365,7 +1369,7 @@ public abstract class IOService<RefObject>
 			if (log.isLoggable(Level.FINE)) {
 				log.log(Level.FINE, "Socket: {0}, Resizing socketInput to {1} bytes.",
 						new Object[] { socketIO,
-						newSize });
+								newSize });
 			}
 
 			ByteBuffer b = ByteBuffer.allocate(newSize);

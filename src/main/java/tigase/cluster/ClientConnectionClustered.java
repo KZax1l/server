@@ -59,8 +59,8 @@ import java.util.logging.Logger;
 @ConfigType({ConfigTypeEnum.DefaultMode, ConfigTypeEnum.ConnectionManagersMode})
 @ClusterModeRequired(active = true)
 public class ClientConnectionClustered
-				extends ClientConnectionManager
-				implements ClusteredComponentIfc {
+		extends ClientConnectionManager
+		implements ClusteredComponentIfc {
 	/**
 	 * Variable <code>log</code> is a class logger.
 	 */
@@ -69,7 +69,7 @@ public class ClientConnectionClustered
 
 	//~--- fields ---------------------------------------------------------------
 
-//	private SeeOtherHostIfc see_other_host_strategy = null;
+	//	private SeeOtherHostIfc see_other_host_strategy = null;
 	@SuppressWarnings("serial")
 	private List<BareJID>   connectedNodes          = new CopyOnWriteArrayList<BareJID>() {
 		{
@@ -77,10 +77,10 @@ public class ClientConnectionClustered
 		}
 	};
 
-    private EventListener<ClusterConnectionManager.ClusterInitializedEvent> clusterEventHandler = null;
+	private EventListener<ClusterConnectionManager.ClusterInitializedEvent> clusterEventHandler = null;
 
 	public ClientConnectionClustered() {
-		delayPortListening = System.getProperty("client-" + PORT_LISTENING_DELAY_KEY) == null ? true : Boolean.getBoolean("client-" + PORT_LISTENING_DELAY_KEY);
+		delayPortListening = true;
 	}
 
 	//~--- methods --------------------------------------------------------------
@@ -88,13 +88,13 @@ public class ClientConnectionClustered
 	@Override
 	protected void onNodeConnected(JID jid) {
 		super.onNodeConnected(jid);
-		
+
 		List<JID> connectedNodes = getNodesConnectedWithLocal();
 		if (see_other_host_strategy != null) {
 			see_other_host_strategy.setNodes(connectedNodes);
 		}
-	}	
-	
+	}
+
 	@Override
 	public void onNodeDisconnected(JID jid) {
 		super.onNodeDisconnected(jid);
@@ -146,19 +146,19 @@ public class ClientConnectionClustered
 		return see_other_host_strategy;
 	}
 
-    @Override
-    public void start() {
-        super.start();
+	@Override
+	public void start() {
+		super.start();
 
-        if (clusterEventHandler == null) {
-            clusterEventHandler = (ClusterConnectionManager.ClusterInitializedEvent event) -> {
+		if (clusterEventHandler == null) {
+			clusterEventHandler = (ClusterConnectionManager.ClusterInitializedEvent event) -> {
 				ClientConnectionClustered.this.connectWaitingTasks();
 				log.log(Level.WARNING, "Starting listening on ports of component: {0}", ClientConnectionClustered.this.getName());
 				eventBus.removeListener(clusterEventHandler);
-            };
-        }
+			};
+		}
 
-        eventBus.addListener(ClusterConnectionManager.ClusterInitializedEvent.class, clusterEventHandler);
+		eventBus.addListener(ClusterConnectionManager.ClusterInitializedEvent.class, clusterEventHandler);
 
 		if (delayPortListening) {
 			addTimerTask(new TimerTask() {
@@ -169,12 +169,12 @@ public class ClientConnectionClustered
 				}
 			}, connectionDelay * 30);
 		}
-    }
+	}
 
-    @Override
-    public void stop() {
-        super.stop();
+	@Override
+	public void stop() {
+		super.stop();
 		eventBus.removeListener(clusterEventHandler);
-        clusterEventHandler = null;
-    }
+		clusterEventHandler = null;
+	}
 }

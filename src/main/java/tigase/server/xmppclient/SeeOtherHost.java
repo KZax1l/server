@@ -26,7 +26,6 @@ import tigase.kernel.beans.Initializable;
 import tigase.kernel.beans.Inject;
 import tigase.kernel.beans.config.ConfigField;
 import tigase.kernel.beans.selector.ClusterModeRequired;
-import tigase.util.TigaseStringprepException;
 import tigase.vhosts.VHostItem;
 import tigase.vhosts.VHostManagerIfc;
 import tigase.xmpp.BareJID;
@@ -34,7 +33,6 @@ import tigase.xmpp.JID;
 
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 //~--- classes ----------------------------------------------------------------
@@ -72,10 +70,6 @@ public class SeeOtherHost implements SeeOtherHostIfc, Initializable {
 	}
 
 	@Override
-	public void getDefaults(Map<String, Object> defs, Map<String, Object> params) {
-	}
-
-	@Override
 	public void initialize() {
 		List<VHostItem.DataType> types = new ArrayList<VHostItem.DataType>();
 		types.add(new VHostItem.DataType( REDIRECTION_ENABLED, "see-other-host redirection enabled",
@@ -83,38 +77,11 @@ public class SeeOtherHost implements SeeOtherHostIfc, Initializable {
 		VHostItem.registerData( types );
 	}
 
-	@Override
-	public void setProperties(final Map<String, Object> props) {
-		if (props.containsKey(SeeOtherHostIfc.CM_SEE_OTHER_HOST_ACTIVE)) {
-			
-			String[] phase =  ((String)props.get(SeeOtherHostIfc.CM_SEE_OTHER_HOST_ACTIVE)).split( ";");
-			for ( String ph : phase) {
-				try {
-					active.add( Phase.valueOf( ph ) );
-				} catch ( IllegalArgumentException e ) {
-					log.log( Level.FINEST, "unsupported phase configuration item: " + ph + e  );
-				}
-			}
-
-		} else {
-			active.add( Phase.OPEN );
-		}
-		log.log( Level.CONFIG, props.get( "component-id" ) + " :: see-other-redirect active in: " + Arrays.asList( active ) );
-
-		if ((props.containsKey(SeeOtherHostIfc.CM_SEE_OTHER_HOST_DEFAULT_HOST))
-			&& !props.get(SeeOtherHostIfc.CM_SEE_OTHER_HOST_DEFAULT_HOST).toString().trim().isEmpty()) {
-			defaultHost = new ArrayList<BareJID>();
-			for (String host : ((String) props.get(SeeOtherHostIfc.CM_SEE_OTHER_HOST_DEFAULT_HOST)).split(",")) {
-				try {
-					defaultHost.add(BareJID.bareJIDInstance(host));
-				} catch (TigaseStringprepException ex) {
-					log.log(Level.CONFIG, "From JID violates RFC6122 (XMPP:Address Format): ", ex);
-				}
-			}
+	public void setDefaultHost(List<BareJID> defaultHost) {
+		if (defaultHost != null) {
 			Collections.sort(defaultHost);
-		} else {
-			defaultHost = null;
 		}
+		this.defaultHost = defaultHost;
 	}
 
 	@Override
@@ -142,14 +109,14 @@ public class SeeOtherHost implements SeeOtherHostIfc, Initializable {
 	@Override
 	public boolean isEnabled(VHostItem vHost, Phase ph) {
 		return (boolean) vHost.getData( REDIRECTION_ENABLED )
-					 && active.contains( ph );
+				&& active.contains( ph );
 	}
-	
+
 	@Override
 	public void start() {
 		eventBus.registerAll(this);
 	}
-	
+
 	@Override
 	public void stop() {
 		eventBus.unregisterAll(this);
@@ -165,5 +132,5 @@ public class SeeOtherHost implements SeeOtherHostIfc, Initializable {
 			shutdownNodes.add(event.getNode());
 		}
 	}
-	
+
 }

@@ -28,11 +28,9 @@ import tigase.db.DataSourceHelper;
 import tigase.db.beans.MDRepositoryBeanWithStatistics;
 import tigase.eventbus.EventBus;
 import tigase.eventbus.HandleEvent;
-import tigase.kernel.beans.Bean;
-import tigase.kernel.beans.Initializable;
-import tigase.kernel.beans.Inject;
-import tigase.kernel.beans.UnregisterAware;
+import tigase.kernel.beans.*;
 import tigase.kernel.beans.config.ConfigField;
+import tigase.kernel.core.Kernel;
 import tigase.xmpp.BareJID;
 import tigase.xmpp.JID;
 
@@ -47,20 +45,20 @@ import java.util.logging.Logger;
  *
  */
 public class SeeOtherHostDualIP
-		extends SeeOtherHostHashed implements Initializable, UnregisterAware {
+		extends SeeOtherHostHashed implements Initializable, RegistrarBean, UnregisterAware {
 
 	private static final Logger log = Logger.getLogger( SeeOtherHostDualIP.class.getName() );
 
 	public static final String SEE_OTHER_HOST_FALLBACK_REDIRECTION_KEY
-														 = CM_SEE_OTHER_HOST_CLASS_PROP_KEY + "/" + "fallback-redirection-host";
+			= CM_SEE_OTHER_HOST_CLASS_PROP_KEY + "/" + "fallback-redirection-host";
 
 	public static final String SEE_OTHER_HOST_DATA_SOURCE_KEY
-														 = CM_SEE_OTHER_HOST_CLASS_PROP_KEY + "/" + "data-source";
+			= CM_SEE_OTHER_HOST_CLASS_PROP_KEY + "/" + "data-source";
 	public static final String SEE_OTHER_HOST_DATA_SOURCE_VALUE
-														 = SeeOtherHostDualIPSQLRepository.class.getName();
+			= SeeOtherHostDualIPSQLRepository.class.getName();
 
 	public static final String SEE_OTHER_HOST_DB_URL_KEY
-														 = CM_SEE_OTHER_HOST_CLASS_PROP_KEY + "/" + "db-url";
+			= CM_SEE_OTHER_HOST_CLASS_PROP_KEY + "/" + "db-url";
 
 	@ConfigField(desc = "Failback host", alias = "failbackHost")
 	private BareJID fallback_host = null;
@@ -129,7 +127,7 @@ public class SeeOtherHostDualIP
 				oldItem = redirectsMap.put( hostname, secondary );
 				if ( log.isLoggable( Level.FINE ) ){
 					log.log( Level.FINE, "Redirection item :: hostname: {0}, secondary: {1}, added/updated! Replaced: {2}",
-									 new Object[] { hostname, secondary, oldItem } );
+							new Object[] { hostname, secondary, oldItem } );
 				}
 
 				break;
@@ -138,7 +136,7 @@ public class SeeOtherHostDualIP
 				oldItem = redirectsMap.remove( hostname );
 				if ( log.isLoggable( Level.FINE ) ){
 					log.log( Level.FINE, "Redirection item :: hostname: {0}, {1}",
-									 new Object[] { hostname, ( oldItem != null ? "removed" : "was not present in redirection map" ) } );
+							new Object[] { hostname, ( oldItem != null ? "removed" : "was not present in redirection map" ) } );
 				}
 				break;
 		}
@@ -154,8 +152,18 @@ public class SeeOtherHostDualIP
 	@Override
 	public boolean isRedirectionRequired( BareJID defaultHost, BareJID redirectionHost ) {
 		return redirectsMap.get( defaultHost ) != null
-					 ? !redirectsMap.get( defaultHost ).equals( redirectionHost )
-					 : false;
+				? !redirectsMap.get( defaultHost ).equals( redirectionHost )
+				: false;
+	}
+
+	@Override
+	public void register(Kernel kernel) {
+
+	}
+
+	@Override
+	public void unregister(Kernel kernel) {
+
 	}
 
 	protected void reloadRedirection() {

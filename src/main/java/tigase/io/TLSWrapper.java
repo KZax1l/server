@@ -24,26 +24,22 @@ package tigase.io;
 
 import tigase.cert.CertCheckResult;
 import tigase.cert.CertificateUtil;
-import tigase.server.XMPPServer;
 
 import javax.net.ssl.*;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLEngineResult.Status;
 import java.nio.ByteBuffer;
-import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
  * Describe class TLSWrapper here.
- * 
- * 
+ *
+ *
  * Created: Sat Mar 5 09:13:29 2005
- * 
+ *
  * @author <a href="mailto:artur.hefczyc@tigase.org">Artur Hefczyc</a>
  * @version $Rev$
  */
@@ -63,101 +59,14 @@ public class TLSWrapper {
 	private SSLEngine tlsEngine = null;
 	private SSLEngineResult tlsEngineResult = null;
 
-	// TLS/SSL issue with JDK and NSS - bug workaround
-	private static final boolean tls_jdk_nss_workaround = System.getProperty("tls-jdk-nss-bug-workaround-active") == null ? false
-			: Boolean.getBoolean("tls-jdk-nss-bug-workaround-active");
-
-	// Workaround for TLS/SSL bug in new JDK used with new version of
-	// nss library see also:
-	// http://stackoverflow.com/q/10687200/427545
-	// http://bugs.sun.com/bugdatabase/view_bug.do;jsessionid=b509d9cb5d8164d90e6731f5fc44?bug_id=6928796
-	private static final String[] TLS_WORKAROUND_CIPHERS = new String[] { "SSL_RSA_WITH_RC4_128_MD5",
-			"SSL_RSA_WITH_RC4_128_SHA", "TLS_RSA_WITH_AES_128_CBC_SHA", "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
-			"TLS_DHE_DSS_WITH_AES_128_CBC_SHA", "SSL_RSA_WITH_3DES_EDE_CBC_SHA", "SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA",
-			"SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA", "SSL_RSA_WITH_DES_CBC_SHA", "SSL_DHE_RSA_WITH_DES_CBC_SHA",
-			"SSL_DHE_DSS_WITH_DES_CBC_SHA", "SSL_RSA_EXPORT_WITH_RC4_40_MD5", "SSL_RSA_EXPORT_WITH_DES40_CBC_SHA",
-			"SSL_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA", "SSL_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA",
-			"TLS_EMPTY_RENEGOTIATION_INFO_SCSV" };
-
-	private static final String[] HARDENED_MODE_FORBIDDEN_SIPHERS = new String[] { "TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA",
-			"TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA", "SSL_RSA_WITH_3DES_EDE_CBC_SHA", "TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA",
-			"TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA", "SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA", "SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA",
-			"TLS_ECDHE_ECDSA_WITH_RC4_128_SHA", "TLS_ECDHE_RSA_WITH_RC4_128_SHA", "SSL_RSA_WITH_RC4_128_SHA",
-			"TLS_ECDH_ECDSA_WITH_RC4_128_SHA", "TLS_ECDH_RSA_WITH_RC4_128_SHA", "SSL_RSA_WITH_RC4_128_MD5",
-			"SSL_RSA_EXPORT_WITH_RC4_40_MD5", "TLS_KRB5_WITH_RC4_128_SHA", "TLS_KRB5_WITH_RC4_128_MD5",
-			"TLS_KRB5_EXPORT_WITH_RC4_40_SHA", "TLS_KRB5_EXPORT_WITH_RC4_40_MD5" };
-
-	private static String[] enabledProtocols;
-
-	private static String[] enabledCiphers;
-
-	private static String markEnabled(String[] enabled, String[] supported) {
-		final List<String> en = enabled == null ? new ArrayList<String>() : Arrays.asList(enabled);
-		String result = "";
-
-		if (supported != null)
-			for (int i = 0; i < supported.length; i++) {
-				String t = supported[i];
-				result += (en.contains(t) ? "(+)" : "(-)");
-				result += t;
-				if (i + 1 < supported.length)
-					result += ",";
-			}
-
-		return result;
-	}
-
-	static {
-		String[] allEnabledCiphers = null;
-		try {
-			SSLEngine tmpE = SSLContext.getDefault().createSSLEngine();
-			allEnabledCiphers = tmpE.getEnabledCipherSuites();
-			log.config("Supported protocols: " + markEnabled(tmpE.getEnabledProtocols(), tmpE.getSupportedProtocols()));
-			log.config("Supported ciphers: " + markEnabled(allEnabledCiphers, tmpE.getSupportedCipherSuites()));
-		} catch (NoSuchAlgorithmException e) {
-			log.log(Level.WARNING, "Can't determine supported protocols", e);
-		}
-
-		if (log.isLoggable(Level.CONFIG))
-			log.config("Hardened mode is " + (XMPPServer.isHardenedModeEnabled() ? "enabled" : "disabled"));
-
-		String enabledProtocolsProp = System.getProperty("tls-enabled-protocols");
-		if (enabledProtocolsProp != null) {
-			enabledProtocols = enabledProtocolsProp.split(",");
-		} else if (XMPPServer.isHardenedModeEnabled()) {
-			enabledProtocols = new String[] { "SSLv2Hello", "TLSv1", "TLSv1.1", "TLSv1.2" };
-		}
-
-		if (log.isLoggable(Level.CONFIG))
-			log.config("Enabled protocols: " + (enabledProtocols == null ? "default" : Arrays.toString(enabledProtocols)));
-
-		String enabledCiphersProp = System.getProperty("tls-enabled-ciphers");
-		if (enabledCiphersProp != null) {
-			enabledCiphers = enabledCiphersProp.split(",");
-		} else if (XMPPServer.isHardenedModeEnabled()) {
-			System.setProperty("jdk.tls.ephemeralDHKeySize", "2048");
-			ArrayList<String> ciphers = new ArrayList<String>(Arrays.asList(allEnabledCiphers));
-			ciphers.removeAll(Arrays.asList(HARDENED_MODE_FORBIDDEN_SIPHERS));
-			enabledCiphers = ciphers.toArray(new String[] {});
-		} else if (tls_jdk_nss_workaround) {
-			if (log.isLoggable(Level.CONFIG))
-				log.config("Workaround for TLS/SSL bug is enabled");
-			enabledCiphers = TLS_WORKAROUND_CIPHERS;
-		}
-
-		if (log.isLoggable(Level.CONFIG))
-			log.config("Enabled ciphers: " + (enabledCiphers == null ? "default" : Arrays.toString(enabledCiphers)));
-
-	}
-
 	public TLSWrapper(SSLContext sslc, TLSEventHandler eventHandler, String hostname, int port, final boolean clientMode, final boolean wantClientAuth) {
 		this(sslc, eventHandler, hostname, port, clientMode, wantClientAuth, false);
 	}
-	
+
 	/**
 	 * Creates a new <code>TLSWrapper</code> instance.
-	 * 
-	 * 
+	 *
+	 *
 	 * @param sslc
 	 * @param eventHandler
 	 * @param hostname
@@ -166,6 +75,10 @@ public class TLSWrapper {
 	 * @param wantClientAuth
 	 */
 	public TLSWrapper(SSLContext sslc, TLSEventHandler eventHandler, String hostname, int port, final boolean clientMode, final boolean wantClientAuth, final boolean needClientAuth) {
+		this(sslc, eventHandler, hostname, port, clientMode, wantClientAuth, needClientAuth, null, null);
+	}
+
+	public TLSWrapper(SSLContext sslc, TLSEventHandler eventHandler, String hostname, int port, final boolean clientMode, final boolean wantClientAuth, final boolean needClientAuth, String[] enabledCiphers, String[] enabledProtocols) {
 		if (clientMode && hostname != null)
 			tlsEngine = sslc.createSSLEngine(hostname, port);
 		else
@@ -198,15 +111,15 @@ public class TLSWrapper {
 					+ (tlsEngine.getEnabledProtocols() == null ? " default" : Arrays.toString(tlsEngine.getEnabledProtocols()))
 					+ "; Ciphers:"
 					+ (tlsEngine.getEnabledCipherSuites() == null ? " default"
-							: Arrays.toString(tlsEngine.getEnabledCipherSuites())));
+					: Arrays.toString(tlsEngine.getEnabledCipherSuites())));
 
 	}
 
 	/**
 	 * Method description
-	 * 
-	 * 
-	 * 
+	 *
+	 *
+	 *
 	 */
 	public int bytesConsumed() {
 		return tlsEngineResult.bytesConsumed();
@@ -218,8 +131,8 @@ public class TLSWrapper {
 
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
 	 * @throws SSLException
 	 */
 	public void close() throws SSLException {
@@ -230,9 +143,9 @@ public class TLSWrapper {
 
 	/**
 	 * Method description
-	 * 
-	 * 
-	 * 
+	 *
+	 *
+	 *
 	 */
 	public int getAppBuffSize() {
 		return appBuffSize;
@@ -240,11 +153,11 @@ public class TLSWrapper {
 
 	/**
 	 * Method description
-	 * 
-	 * 
-	 * 
+	 *
+	 *
+	 *
 	 * @param revocationEnabled
-	 * 
+	 *
 	 */
 	public CertCheckResult getCertificateStatus(boolean revocationEnabled, SSLContextContainerIfc sslContextContainer) {
 		Certificate[] peerChain = null;
@@ -270,9 +183,9 @@ public class TLSWrapper {
 
 	/**
 	 * Method description
-	 * 
-	 * 
-	 * 
+	 *
+	 *
+	 *
 	 */
 	public int getNetBuffSize() {
 		return netBuffSize;
@@ -280,9 +193,9 @@ public class TLSWrapper {
 
 	/**
 	 * Method description
-	 * 
-	 * 
-	 * 
+	 *
+	 *
+	 *
 	 */
 	public int getPacketBuffSize() {
 		return tlsEngine.getSession().getPacketBufferSize();
@@ -290,9 +203,9 @@ public class TLSWrapper {
 
 	/**
 	 * Method description
-	 * 
-	 * 
-	 * 
+	 *
+	 *
+	 *
 	 */
 	public TLSStatus getStatus() {
 		TLSStatus status = null;
@@ -308,20 +221,20 @@ public class TLSWrapper {
 			} // end of if (tlsEngine.getStatus() == Status.BUFFER_UNDERFLOW)
 			else {
 				switch (tlsEngine.getHandshakeStatus()) {
-				case NEED_WRAP:
-					status = TLSStatus.NEED_WRITE;
+					case NEED_WRAP:
+						status = TLSStatus.NEED_WRITE;
 
-					break;
+						break;
 
-				case NEED_UNWRAP:
-					status = TLSStatus.NEED_READ;
+					case NEED_UNWRAP:
+						status = TLSStatus.NEED_READ;
 
-					break;
+						break;
 
-				default:
-					status = TLSStatus.OK;
+					default:
+						status = TLSStatus.OK;
 
-					break;
+						break;
 				} // end of switch (tlsEngine.getHandshakeStatus())
 			}
 		} // end of else
@@ -331,9 +244,9 @@ public class TLSWrapper {
 
 	/**
 	 * Method description
-	 * 
-	 * 
-	 * 
+	 *
+	 *
+	 *
 	 */
 	public boolean isClientMode() {
 		return tlsEngine.getUseClientMode();
@@ -341,8 +254,8 @@ public class TLSWrapper {
 
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
 	 * @param id
 	 */
 	public void setDebugId(String id) {
@@ -351,13 +264,13 @@ public class TLSWrapper {
 
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
 	 * @param net
 	 * @param app
-	 * 
-	 * 
-	 * 
+	 *
+	 *
+	 *
 	 * @throws SSLException
 	 */
 	public ByteBuffer unwrap(ByteBuffer net, ByteBuffer app) throws SSLException {
@@ -372,7 +285,7 @@ public class TLSWrapper {
 					tlsEngineResult.getHandshakeStatus() });
 		}
 
-		if (tlsEngineResult.getHandshakeStatus() == HandshakeStatus.FINISHED) {
+		if (tlsEngineResult.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.FINISHED) {
 			if (eventHandler != null) {
 				eventHandler.handshakeCompleted(this);
 			}
@@ -397,11 +310,11 @@ public class TLSWrapper {
 
 	/**
 	 * Method description
-	 * 
-	 * 
+	 *
+	 *
 	 * @param app
 	 * @param net
-	 * 
+	 *
 	 * @throws SSLException
 	 */
 	public void wrap(ByteBuffer app, ByteBuffer net) throws SSLException {
@@ -411,7 +324,7 @@ public class TLSWrapper {
 					new Object[] { debugId, tlsEngineResult.getStatus(), tlsEngineResult.getHandshakeStatus() });
 		}
 
-		if (tlsEngineResult.getHandshakeStatus() == HandshakeStatus.FINISHED) {
+		if (tlsEngineResult.getHandshakeStatus() == SSLEngineResult.HandshakeStatus.FINISHED) {
 			if (eventHandler != null) {
 				eventHandler.handshakeCompleted(this);
 			}

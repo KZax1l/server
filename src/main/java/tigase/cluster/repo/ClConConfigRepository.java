@@ -33,6 +33,8 @@ import tigase.eventbus.EventBus;
 import tigase.kernel.beans.Initializable;
 import tigase.kernel.beans.Inject;
 import tigase.kernel.beans.UnregisterAware;
+import tigase.kernel.beans.config.ConfigAlias;
+import tigase.kernel.beans.config.ConfigAliases;
 import tigase.kernel.beans.config.ConfigField;
 import tigase.sys.ShutdownHook;
 import tigase.sys.TigaseRuntime;
@@ -52,12 +54,15 @@ import java.util.logging.Logger;
  * @version        5.2.0, 13/03/09
  * @author         <a href="mailto:artur.hefczyc@tigase.org">Artur Hefczyc</a>
  */
+@ConfigAliases({
+		@ConfigAlias(field = "items", alias = "cluster-nodes")
+})
 public class ClConConfigRepository
 		extends ConfigRepository<ClusterRepoItem>
 		implements ShutdownHook, Initializable, UnregisterAware {
 
 	private static final Logger log = Logger.getLogger(ClConConfigRepository.class.getName());
-	
+
 	//~--- fields ---------------------------------------------------------------
 
 	@ConfigField(desc = "Automatically remove obsolote items", alias = "repo-auto-remove-obsolete-items")
@@ -79,13 +84,13 @@ public class ClConConfigRepository
 		}
 	}
 
-    protected boolean firstLoadDone = false;
+	protected boolean firstLoadDone = false;
 
 	@Override
 	public void destroy() {
 		// Nothing to do
 	}
-	
+
 	//~--- get methods ----------------------------------------------------------
 
 	@Override
@@ -125,26 +130,26 @@ public class ClConConfigRepository
 	public void reload() {
 		super.reload();
 
-        String host = DNSResolverFactory.getInstance().getDefaultHost();
+		String host = DNSResolverFactory.getInstance().getDefaultHost();
 
-        // we check if we already realoded repo from repository and have all items (own item will have
-        // correct update time), if so we set flag that first load was made and if there was only one item
-        // we send even that cluster was initiated
-        if (!firstLoadDone) {
-            if (log.isLoggable(Level.FINEST)) {
-                log.log(Level.FINEST, "First Cluster repository reload done: {0}, items size: {1}, last updated own item: {2}",
-                        new Object[]{firstLoadDone, items.size(), items.get(host).getLastUpdate()});
-            }
+		// we check if we already realoded repo from repository and have all items (own item will have
+		// correct update time), if so we set flag that first load was made and if there was only one item
+		// we send even that cluster was initiated
+		if (!firstLoadDone) {
+			if (log.isLoggable(Level.FINEST)) {
+				log.log(Level.FINEST, "First Cluster repository reload done: {0}, items size: {1}, last updated own item: {2}",
+						new Object[]{firstLoadDone, items.size(), items.get(host).getLastUpdate()});
+			}
 
-            if (items.get(host) != null && items.get(host).getLastUpdate() > 0 ) {
-                firstLoadDone = true;
+			if (items.get(host) != null && items.get(host).getLastUpdate() > 0 ) {
+				firstLoadDone = true;
 
-                if (items.size() == 1) {
-                    eventBus.fire(new ClusterConnectionManager.ClusterInitializedEvent());
-                }
+				if (items.size() == 1) {
+					eventBus.fire(new ClusterConnectionManager.ClusterInitializedEvent());
+				}
 
-            }
-        }
+			}
+		}
 
 		ClusterRepoItem item = getItem(host);
 		try {
@@ -187,10 +192,10 @@ public class ClConConfigRepository
 		} else {
 			if ( log.isLoggable( Level.FINEST ) ){
 				log.log( Level.FINEST,
-								 "Removing stale item: {0}; current time: {1}, last update: {2} ({3}), diff: {4}, autoreload {5}",
-								 new Object[] { item, System.currentTimeMillis(), item.getLastUpdate(),
-																new Date( item.getLastUpdate() ), System.currentTimeMillis() - item.getLastUpdate(),
-																5000 * autoReloadInterval } );
+						"Removing stale item: {0}; current time: {1}, last update: {2} ({3}), diff: {4}, autoreload {5}",
+						new Object[] { item, System.currentTimeMillis(), item.getLastUpdate(),
+								new Date( item.getLastUpdate() ), System.currentTimeMillis() - item.getLastUpdate(),
+								5000 * autoReloadInterval } );
 			}
 			if ( auto_remove_obsolete_items ){
 				removeItem( item.getHostname() );
@@ -201,10 +206,10 @@ public class ClConConfigRepository
 	@Override
 	public boolean itemChanged(ClusterRepoItem oldItem, ClusterRepoItem newItem) {
 		return !oldItem.getPassword().equals( newItem.getPassword() )
-					 || ( oldItem.getPortNo() != newItem.getPortNo() )
-					 || !Objects.equals( oldItem.getSecondaryHostname(), newItem.getSecondaryHostname() );
+				|| ( oldItem.getPortNo() != newItem.getPortNo() )
+				|| !Objects.equals( oldItem.getSecondaryHostname(), newItem.getSecondaryHostname() );
 	}
-	
+
 	@Override
 	public String shutdown() {
 		String host = DNSResolverFactory.getInstance().getDefaultHost();

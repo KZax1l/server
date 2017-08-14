@@ -23,16 +23,13 @@
 
 package tigase.server.xmppclient;
 
-import tigase.xmpp.BareJID;
-
+import tigase.server.Lifecycle;
 import tigase.vhosts.VHostItem;
-import tigase.vhosts.VHostManagerIfc;
 import tigase.xml.Element;
+import tigase.xmpp.BareJID;
+import tigase.xmpp.JID;
 
 import java.util.List;
-import java.util.Map;
-import tigase.server.Lifecycle;
-import tigase.xmpp.JID;
 
 /**
  * @author Wojtek
@@ -81,9 +78,6 @@ public interface SeeOtherHostIfc extends Lifecycle {
 	void setNodes(List<JID> nodes);
 
 	// ~--- properties ----------------------------------------------------------
-	void getDefaults(Map<String, Object> defs, Map<String, Object> params);
-
-	void setProperties(Map<String, Object> props);
 
 	/**
 	 * Returns Element object containing stream:error message
@@ -92,7 +86,7 @@ public interface SeeOtherHostIfc extends Lifecycle {
 	 * @param destination BareJID address of the redirect destination
 	 * @return element containing stream:error message
 	 */
-	default Element getStreamError(String xmlns, BareJID destination, Integer port) {
+	default Element getStreamError( String xmlns, BareJID destination, Integer port ) {
 		Element error = new Element( "stream:error" );
 		Element seeOtherHost = new Element( "see-other-host", destination.toString() + (port != null ? ":"+port : "") );
 
@@ -123,7 +117,7 @@ public interface SeeOtherHostIfc extends Lifecycle {
 	 * @return {@code true} if the redirection is required, otherwise
 	 *         {@code false}
 	 */
-	default boolean isRedirectionRequired(BareJID defaultHost, BareJID redirectionHost) {
+	default boolean isRedirectionRequired( BareJID defaultHost, BareJID redirectionHost ) {
 		return !defaultHost.equals( redirectionHost );
 	}
 

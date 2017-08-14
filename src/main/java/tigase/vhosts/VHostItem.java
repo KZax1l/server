@@ -26,34 +26,23 @@ package tigase.vhosts;
 
 //~--- non-JDK imports --------------------------------------------------------
 
-import java.lang.reflect.Array;
+import tigase.db.comp.RepositoryItemAbstract;
+import tigase.server.Command;
+import tigase.server.Packet;
+import tigase.server.xmppclient.ClientTrustManagerFactory;
+import tigase.util.DataTypes;
+import tigase.util.StringUtilities;
+import tigase.util.TigaseStringprepException;
 import tigase.vhosts.filter.DomainFilterPolicy;
+import tigase.xml.Element;
+import tigase.xmpp.JID;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.lang.reflect.Array;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import tigase.db.comp.RepositoryItemAbstract;
-import tigase.server.Command;
-import tigase.server.Packet;
-import tigase.server.XMPPServer;
-import tigase.server.xmppclient.ClientTrustManagerFactory;
-import tigase.util.DataTypes;
-import tigase.util.TigaseStringprepException;
-import tigase.xml.Element;
-import tigase.xmpp.JID;
-import tigase.util.StringUtilities;
-import tigase.xmpp.BareJID;
 
 /**
  * Objects of this class represent virtual host with all hosts configuration
@@ -103,10 +92,10 @@ import tigase.xmpp.BareJID;
  * @version $Rev$
  */
 public class VHostItem
-				extends RepositoryItemAbstract
-				implements Comparable<VHostItem> {
-	
-	public static class DataType { 
+		extends RepositoryItemAbstract
+		implements Comparable<VHostItem> {
+
+	public static class DataType {
 		private final String name;
 		private final String key;
 		private final Class cls;
@@ -114,7 +103,7 @@ public class VHostItem
 		private final Object defValue;
 		private final Object[] options;
 		private final String[] optionsNames;
-		
+
 		public DataType(String key, String name, Class cls, Class<? extends Collection> collectionCls, Object defValue, Object[] options, String[] optionsNames) {
 			this.key = key;
 			this.name = name;
@@ -123,11 +112,11 @@ public class VHostItem
 			this.defValue = defValue;
 			this.options = options;
 			this.optionsNames = optionsNames;
-			
+
 			if (defValue != null && !cls.isAssignableFrom(defValue.getClass())) {
 				throw new IllegalArgumentException("default value paratemeter must of class " + cls.getCanonicalName());
 			}
-			
+
 			if (options != null) {
 				for (Object option : options) {
 					if (option != null && !cls.isAssignableFrom(option.getClass())) {
@@ -139,23 +128,23 @@ public class VHostItem
 				}
 			}
 		}
-		
+
 		public DataType(String key, String name, Class cls, Class<? extends Collection> collectionCls, Object defValue, Object[] options) {
 			this(key, name, cls, collectionCls, defValue, options, null);
 		}
-		
+
 		public DataType(String key, String name, Class cls, Class<? extends Collection> collectionCls, Object defValue) {
 			this(key, name, cls, collectionCls, defValue, null, null);
 		}
-		
+
 		public DataType(String key, String name, Class cls, Object defValue, Object[] options) {
 			this(key, name, cls, null, defValue, options, null);
 		}
-		
+
 		public DataType(String key, String name, Class cls, Object defValue) {
 			this(key, name, cls, null, defValue, null, null);
 		}
-		
+
 		public String getName() {
 			return name;
 		}
@@ -167,24 +156,24 @@ public class VHostItem
 		public Class getCls() {
 			return cls;
 		}
-		
+
 		public Class<? extends Collection> getCollectionCls() {
 			return collectionCls;
 		}
-		
+
 		public <T> T getDefValue() {
 			return (T) defValue;
 		}
-		
+
 		public <T> T[] getOptions() {
 			return (T[]) options;
 		}
-		
+
 		public String[] getOptionsNames() {
 			return optionsNames;
 		}
 	}
-	
+
 	/**
 	 * This is an attribute name for storing information whether anonymous user
 	 * can login for this domain.
@@ -303,7 +292,7 @@ public class VHostItem
 
 	/** Field description */
 	public static final String TRUSTED_JIDS_ATT = "trusted-jids";
-	
+
 	/**
 	 * Element name to for the VHostItem XML storage.
 	 */
@@ -371,73 +360,46 @@ public class VHostItem
 	protected static final String[] VHOST_COMPONENTS_PATH = { VHOST_ELEM, COMPONENTS_ELEM };
 
 	protected static final Map<String,DataType> dataTypes = new ConcurrentHashMap<String,DataType>();
-	
-	private static ConcurrentSkipListSet<String> GLOBAL_TRUSTED_JIDS = null;
-	
+
 	public static void registerData(List<DataType> types) {
 		for (DataType type : types) {
 			dataTypes.put(type.getKey(), type);
 		}
 	}
-	
-	protected static void initGlobalTrustedJids() {
-		String trustedJidsStr = System.getProperty("trusted");
-		if (trustedJidsStr == null || trustedJidsStr.isEmpty())
-			GLOBAL_TRUSTED_JIDS = null;
-		else {
-			ConcurrentSkipListSet<String> trusted = new ConcurrentSkipListSet<>();
-			for (String trustedStr : trustedJidsStr.split(",")) {
-				if (!trustedStr.contains("{"))
-					trusted.add(trustedStr);
-			}
-			if (trusted.isEmpty())
-				GLOBAL_TRUSTED_JIDS = null;
-			else
-				GLOBAL_TRUSTED_JIDS = trusted;
-		}
-	}
-	
+
 	static {
-		List<DataType> types = new ArrayList<DataType>();
+		List<DataType> types = new ArrayList<VHostItem.DataType>();
 		types.add(new DataType(ClientTrustManagerFactory.CA_CERT_PATH, "Client Certificate CA", String.class, null));
 		types.add(new DataType(ClientTrustManagerFactory.CERT_REQUIRED_KEY, "Client Certificate Required", Boolean.class,
 				Boolean.FALSE));
-		types.add(new DataType(TRUSTED_JIDS_ATT, "Trusted JIDs", String[].class, 
+		types.add(new DataType(TRUSTED_JIDS_ATT, "Trusted JIDs", String[].class,
 				ConcurrentSkipListSet.class, null, null));
 		VHostItem.registerData(types);
-		
-		initGlobalTrustedJids();
 	}
 
-	
+
 	//~--- fields ---------------------------------------------------------------
 
 	private String[] comps = null;
 	private int[] c2sPortsAllowed = null;
 	private String[] saslAllowedMechanisms = null;
-	private long     maxUsersNumber = Long.getLong(VHOST_MAX_USERS_PROP_KEY,
-			VHOST_MAX_USERS_PROP_DEF);
-	private JID messageForward = JID.jidInstanceNS(System.getProperty(
-			VHOST_MESSAGE_FORWARD_PROP_KEY, VHOST_MESSAGE_FORWARD_PROP_DEF));
+	private long     maxUsersNumber = VHOST_MAX_USERS_PROP_DEF;
+	private JID messageForward = JID.jidInstanceNS(VHOST_MESSAGE_FORWARD_PROP_DEF);
 	private String otherDomainParams = null;
-	private JID    presenceForward = JID.jidInstanceNS(System.getProperty(
-			VHOST_PRESENCE_FORWARD_PROP_KEY, VHOST_PRESENCE_FORWARD_PROP_DEF));
+	private JID    presenceForward = JID.jidInstanceNS(VHOST_PRESENCE_FORWARD_PROP_DEF);
 	private VHostItem unmodifiableItem = null;
 	private JID       vhost            = null;
-	private boolean   tlsRequired = DataTypes.getProperty(VHOST_TLS_REQUIRED_PROP_KEY,
-			VHOST_TLS_REQUIRED_PROP_DEF);
-	private String  s2sSecret = System.getProperty(S2S_SECRET_PROP_KEY,
-			S2S_SECRET_PROP_DEF);
-	private boolean registerEnabled = DataTypes.getProperty(
-			VHOST_REGISTER_ENABLED_PROP_KEY, VHOST_REGISTER_ENABLED_PROP_DEF);
+	private boolean   tlsRequired = VHOST_TLS_REQUIRED_PROP_DEF;
+	private String  s2sSecret = S2S_SECRET_PROP_DEF;
+	private boolean registerEnabled = VHOST_REGISTER_ENABLED_PROP_DEF;
 	private boolean            enabled = true;
-	private DomainFilterPolicy domainFilter = DomainFilterPolicy.valueof(System.getProperty(
-			DOMAIN_FILTER_POLICY_PROP_KEY, DOMAIN_FILTER_POLICY_PROP_DEF.toString()));
+	private DomainFilterPolicy domainFilter = DOMAIN_FILTER_POLICY_PROP_DEF;
 	private String[] domainFilterDomains = null;
-	private boolean anonymousEnabled = DataTypes.getProperty(
-			VHOST_ANONYMOUS_ENABLED_PROP_KEY, VHOST_ANONYMOUS_ENABLED_PROP_DEF);
+	private boolean anonymousEnabled = VHOST_ANONYMOUS_ENABLED_PROP_DEF;
 	private Map<String,Object> data = new ConcurrentHashMap<String,Object>();
-	
+
+	private VHostItemDefaults defaults;
+
 	//~--- constructors ---------------------------------------------------------
 
 	/**
@@ -449,9 +411,6 @@ public class VHostItem
 		// will always fail (needed mostly for newly added vhosts).
 		if (s2sSecret == null) {
 			s2sSecret = UUID.randomUUID().toString();
-		}
-		if (GLOBAL_TRUSTED_JIDS != null) {
-			data.put(TRUSTED_JIDS_ATT, GLOBAL_TRUSTED_JIDS);
 		}
 	}
 
@@ -509,9 +468,9 @@ public class VHostItem
 				: "");
 		Command.addFieldValue(packet, DOMAIN_FILTER_POLICY_LABEL, domainFilter.toString(),
 				DOMAIN_FILTER_POLICY_LABEL, DomainFilterPolicy.valuesStr(), DomainFilterPolicy
-				.valuesStr());
+						.valuesStr());
 		Command.addFieldValue(packet, DOMAIN_FILTER_POLICY_DOMAINS_LABEL,
-							domainFilterDomains != null ? stringArrayToString( domainFilterDomains, ";") : "");
+				domainFilterDomains != null ? stringArrayToString( domainFilterDomains, ";") : "");
 		Command.addFieldValue(packet, MAX_USERS_NUMBER_LABEL, "" + maxUsersNumber);
 		String c2sPortsAllowedStr = intArrayToString(c2sPortsAllowed,",");
 		Command.addFieldValue(packet, C2S_PORTS_ALLOWED_LABEL,
@@ -530,7 +489,7 @@ public class VHostItem
 				saslAllowedMechanisms != null ? stringArrayToString(saslAllowedMechanisms, ",") : "");
 
 		super.addCommandFields(packet);
-		
+
 		for (DataType type : dataTypes.values()) {
 			if (type.cls != Boolean.class) {
 				Object[] options = type.getOptions();
@@ -553,7 +512,7 @@ public class VHostItem
 						optionsStr[i] = (options[i] != null) ? DataTypes.valueToString(options[i]) : "";
 					}
 					String[] optionsNames = type.getOptionsNames();
-					if (optionsNames == null) 
+					if (optionsNames == null)
 						optionsNames = optionsStr;
 					Command.addFieldValue(packet, type.getName(), valueStr, type.getName(), optionsNames, optionsStr);
 				}
@@ -673,7 +632,7 @@ public class VHostItem
 					}
 					value = collection;
 				} catch (InstantiationException | IllegalAccessException ex) {
-					throw new IllegalArgumentException("Could not instantiate collection of class: " 
+					throw new IllegalArgumentException("Could not instantiate collection of class: "
 							+ type.getCollectionCls().getCanonicalName(), ex);
 				}
 			}
@@ -682,6 +641,26 @@ public class VHostItem
 
 		log.log( Level.FINE, "Initialized from command: {0}", this);
 
+	}
+
+	protected void initializeFromDefaults(VHostItemDefaults vhostDefaults) {
+		if (vhostDefaults.getTrusted() != null) {
+			data.put(TRUSTED_JIDS_ATT, vhostDefaults.getTrusted());
+		}
+		maxUsersNumber = vhostDefaults.getMaxUsersNumber();
+		messageForward = vhostDefaults.getMessageForward();
+		presenceForward = vhostDefaults.getPresenceForward();
+		tlsRequired = vhostDefaults.isTlsRequired();
+		s2sSecret = vhostDefaults.getS2sSecret();
+		registerEnabled = vhostDefaults.isRegisterEnabled();
+		domainFilter = vhostDefaults.getDomainFilter();
+		anonymousEnabled = vhostDefaults.isAnonymousEnabled();
+
+		if (s2sSecret == null) {
+			s2sSecret = UUID.randomUUID().toString();
+		}
+
+		this.defaults = vhostDefaults;
 	}
 
 	@Override
@@ -746,7 +725,7 @@ public class VHostItem
 		if (tmp != null) {
 			setSaslAllowedMechanisms(tmp.split(";"));
 		}
-		
+
 		Element data = elem.getChild("data");
 		if (data != null) {
 			List<Element> items = data.getChildren();
@@ -765,7 +744,7 @@ public class VHostItem
 						} catch (InstantiationException | IllegalAccessException ex) {
 							throw new IllegalArgumentException("Could not instantiate collection of class: "
 									+ type.getCollectionCls().getCanonicalName(), ex);
-						}					
+						}
 					}
 					setData(item.getName(), value);
 				}
@@ -964,7 +943,7 @@ public class VHostItem
 			}
 			elem.addChild(data);
 		}
-		
+
 		return elem;
 	}
 
@@ -1015,13 +994,13 @@ public class VHostItem
 	@Override
 	public String toString() {
 		String str = "Domain: " + vhost + ", enabled: " + enabled
-								 + ", anonym: " + anonymousEnabled + ", register: " + registerEnabled
-								 + ", maxusers: " + maxUsersNumber + ", tls: " + tlsRequired
-								 + ", s2sSecret: " + s2sSecret + ", domainFilter: " + domainFilter
-								 + ", domainFilterDomains: " + stringArrayToString( domainFilterDomains, ";")
-								 + ", c2sPortsAllowed: " + intArrayToString( c2sPortsAllowed, "," )
-								 + ", saslAllowedMechanisms: " + Arrays.toString( saslAllowedMechanisms );
-		
+				+ ", anonym: " + anonymousEnabled + ", register: " + registerEnabled
+				+ ", maxusers: " + maxUsersNumber + ", tls: " + tlsRequired
+				+ ", s2sSecret: " + s2sSecret + ", domainFilter: " + domainFilter
+				+ ", domainFilterDomains: " + stringArrayToString( domainFilterDomains, ";")
+				+ ", c2sPortsAllowed: " + intArrayToString( c2sPortsAllowed, "," )
+				+ ", saslAllowedMechanisms: " + Arrays.toString( saslAllowedMechanisms );
+
 		for (Map.Entry<String,Object> e : data.entrySet()) {
 			Object val = e.getValue();
 			DataType type = dataTypes.get(e.getKey());
@@ -1033,10 +1012,10 @@ public class VHostItem
 					Array.set(val, i, v);
 					i++;
 				}
-			}			
+			}
 			str += ", " + e.getKey() + ": " + DataTypes.valueToString(val);
 		}
-		
+
 		return str;
 	}
 
@@ -1065,10 +1044,10 @@ public class VHostItem
 
 	/**
 	 * Return value for key for this VHost
-	 * 
+	 *
 	 * @param <T>
 	 * @param key
-	 * @return 
+	 * @return
 	 */
 	public <T> T getData(String key) {
 		T val = (T) data.get(key);
@@ -1080,7 +1059,7 @@ public class VHostItem
 		}
 		return val;
 	}
-	
+
 	/**
 	 * Method description
 	 *
@@ -1101,7 +1080,7 @@ public class VHostItem
 	public String[] getDomainFilterDomains() {
 		return domainFilterDomains;
 	}
-	
+
 	@Override
 	public String getElemName() {
 		return VHOST_ELEM;
@@ -1189,7 +1168,7 @@ public class VHostItem
 	public Set<String> getTrustedJIDs() {
 		return getData(TRUSTED_JIDS_ATT);
 	}
-	
+
 	/**
 	 * Method description
 	 *
@@ -1229,9 +1208,9 @@ public class VHostItem
 
 	/**
 	 * Get boolean value contained by this VHost for key
-	 * 
+	 *
 	 * @param key
-	 * @return 
+	 * @return
 	 */
 	public boolean isData(String key) {
 		if (data.containsKey(key))
@@ -1242,7 +1221,7 @@ public class VHostItem
 			return defValue != null ? defValue : false;
 		}
 	}
-	
+
 	/**
 	 * Checks whether this domain is set as enabled or not. This is domain own
 	 * configuration parameter which allows to temporarly disable domain so
@@ -1255,7 +1234,7 @@ public class VHostItem
 	public boolean isEnabled() {
 		return enabled;
 	}
-	
+
 	/**
 	 * The method checks whether user registration is enabled for this domain or
 	 * not. This is the domain own configuration parameter which allows to disable
@@ -1275,15 +1254,15 @@ public class VHostItem
 	 * @return a <code>boolean</code> value whether TLS is required for the vhost or not.
 	 */
 	public boolean isTlsRequired() {
-		return tlsRequired || XMPPServer.isHardenedModeEnabled();
+		return tlsRequired || defaults.isTlsRequired();
 	}
-	
+
 	public boolean isTrustedJID(JID jid) {
 		Set<String> trustedJids = VHostItem.this.getTrustedJIDs();
 		if (trustedJids == null)
 			return false;
-		
-		return trustedJids.contains(jid.toString()) || trustedJids.contains(jid.getBareJID().toString()) 
+
+		return trustedJids.contains(jid.toString()) || trustedJids.contains(jid.getBareJID().toString())
 				|| trustedJids.contains(jid.getDomain());
 	}
 
@@ -1327,9 +1306,9 @@ public class VHostItem
 
 	/**
 	 * Set value for specified key for this VHost
-	 * 
+	 *
 	 * @param key
-	 * @param value 
+	 * @param value
 	 */
 	public void setData(String key, Object value) {
 		if (value == null) {
@@ -1338,7 +1317,7 @@ public class VHostItem
 			this.data.put(key, value);
 		}
 	}
-	
+
 	public void parseDataValue(String key, String valueStr) {
 		DataType type = dataTypes.get(key);
 		if (type == null)
@@ -1348,7 +1327,7 @@ public class VHostItem
 			this.data.remove(key);
 		} else {
 			char typeId = DataTypes.typesMap.get(type.cls.getName());
-			if (valueStr.contains(";")) 
+			if (valueStr.contains(";"))
 				valueStr = valueStr.replace(';', ',');
 			Object value = (valueStr == null || valueStr.isEmpty()) ? null : DataTypes.decodeValueType(typeId, valueStr);
 			if (type.getCollectionCls() != null && value != null) {
@@ -1363,11 +1342,11 @@ public class VHostItem
 							+ type.getCollectionCls().getCanonicalName(), ex);
 				}
 			}
-			
+
 			setData(type.getKey(), value);
 		}
 	}
-	
+
 	/**
 	 * This method allow configure DomainFilterPolicy to be applied during packet
 	 * filtering.
@@ -1475,7 +1454,7 @@ public class VHostItem
 	public void setTrustedJIDs(JID[] trustedJids) {
 		setData(TRUSTED_JIDS_ATT, trustedJids);
 	}
-	
+
 	/**
 	 * Method description
 	 *
@@ -1559,9 +1538,15 @@ public class VHostItem
 	//~--- inner classes --------------------------------------------------------
 
 	private class UnmodifiableVHostItem
-					extends VHostItem {
+			extends VHostItem {
 		@Override
 		public void initFromElement(Element elem) {
+			throw new UnsupportedOperationException(
+					"This is unmodifiable instance of VHostItem");
+		}
+
+		@Override
+		protected void initializeFromDefaults(VHostItemDefaults vhostDefaults) {
 			throw new UnsupportedOperationException(
 					"This is unmodifiable instance of VHostItem");
 		}
@@ -1593,7 +1578,7 @@ public class VHostItem
 		public <T> T getData(String key) {
 			return VHostItem.this.getData(key);
 		}
-		
+
 		@Override
 		public DomainFilterPolicy getDomainFilter() {
 			return VHostItem.this.getDomainFilter();
@@ -1634,7 +1619,7 @@ public class VHostItem
 		public String[] getSaslAllowedMechanisms() {
 			return VHostItem.this.getSaslAllowedMechanisms();
 		}
-		
+
 		@Override
 		public Set<String> getTrustedJIDs() {
 			return Collections.unmodifiableSet(VHostItem.this.getTrustedJIDs());
@@ -1659,7 +1644,7 @@ public class VHostItem
 		public boolean isData(String key) {
 			return VHostItem.this.isData(key);
 		}
-		
+
 		@Override
 		public boolean isEnabled() {
 			return VHostItem.this.isEnabled();
@@ -1679,7 +1664,7 @@ public class VHostItem
 		public boolean isTrustedJID(JID jid) {
 			return VHostItem.this.isTrustedJID(jid);
 		}
-		
+
 		//~--- set methods --------------------------------------------------------
 
 		@Override
@@ -1705,7 +1690,7 @@ public class VHostItem
 			throw new UnsupportedOperationException(
 					"This is unmodifiable instance of VHostItem");
 		}
-		
+
 		@Override
 		public void setDomainFilter(DomainFilterPolicy filter) {
 			throw new UnsupportedOperationException(
@@ -1713,10 +1698,10 @@ public class VHostItem
 		}
 
 		@Override
-	public void setDomainFilterDomains(String[] domainFilterDomains) {
+		public void setDomainFilterDomains(String[] domainFilterDomains) {
 			throw new UnsupportedOperationException(
 					"This is unmodifiable instance of VHostItem");
-	}
+		}
 
 		@Override
 		public void setEnabled(boolean enabled) {

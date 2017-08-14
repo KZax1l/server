@@ -51,9 +51,11 @@ public class MonitorRuntime extends TigaseRuntime {
 
 	private static MonitorRuntime runtime = null;
 	private final LinkedHashSet<ShutdownHook> shutdownHooks =
-					new LinkedHashSet<ShutdownHook>();
+			new LinkedHashSet<ShutdownHook>();
 	private final LinkedList<OnlineJidsReporter> onlineJidsReporters =
-					new LinkedList<OnlineJidsReporter>();
+			new LinkedList<OnlineJidsReporter>();
+
+	private boolean shutdownThreadDump = true;
 
 	private Thread mainShutdownThread;
 
@@ -62,7 +64,7 @@ public class MonitorRuntime extends TigaseRuntime {
 		mainShutdownThread = new MainShutdownThread();
 		Runtime.getRuntime().addShutdownHook(mainShutdownThread);
 	}
-	
+
 	public static MonitorRuntime getMonitorRuntime() {
 		if (runtime == null) {
 			runtime = new MonitorRuntime();
@@ -131,7 +133,7 @@ public class MonitorRuntime extends TigaseRuntime {
 		}
 		return false;
 	}
-	
+
 	@Override
 	public boolean isJidOnlineLocally(JID jid) {
 		if (onlineJidsReporters.size() == 1) {
@@ -144,8 +146,8 @@ public class MonitorRuntime extends TigaseRuntime {
 			}
 		}
 		return false;
-	}	
-	
+	}
+
 	@Override
 	public JID[] getConnectionIdsForJid(JID jid) {
 		if (onlineJidsReporters.size() == 1) {
@@ -164,6 +166,14 @@ public class MonitorRuntime extends TigaseRuntime {
 	@Override
 	public synchronized void removeShutdownHook(ShutdownHook hook) {
 		shutdownHooks.remove(hook);
+	}
+
+	public boolean isShutdownThreadDump() {
+		return shutdownThreadDump;
+	}
+
+	public void setShutdownThreadDump(boolean shutdownThreadDump) {
+		this.shutdownThreadDump = shutdownThreadDump;
 	}
 
 	private class ShutdownHandlerThread extends Thread {
@@ -187,7 +197,7 @@ public class MonitorRuntime extends TigaseRuntime {
 		}
 
 	}
-	
+
 	private class MainShutdownThread extends Thread {
 
 		public MainShutdownThread() {
@@ -199,21 +209,21 @@ public class MonitorRuntime extends TigaseRuntime {
 		public void run() {
 			System.out.println("ShutdownThread started...");
 			log.warning("ShutdownThread started...");
-			LinkedList<ShutdownHandlerThread> thlist = 
-							new LinkedList<ShutdownHandlerThread>();
+			LinkedList<ShutdownHandlerThread> thlist =
+					new LinkedList<ShutdownHandlerThread>();
 			ThreadGroup threads =
-							new ThreadGroup(Thread.currentThread().getThreadGroup(),
+					new ThreadGroup(Thread.currentThread().getThreadGroup(),
 							"Tigase Shutdown");
 			for (ShutdownHook shutdownHook : shutdownHooks) {
 				ShutdownHandlerThread thr =
-								new ShutdownHandlerThread(threads, shutdownHook);
+						new ShutdownHandlerThread(threads, shutdownHook);
 				thr.start();
 				thlist.add(thr);
 			}
 			// We allow for max 10 secs for the shutdown code to run...
 			long shutdownStart = System.currentTimeMillis();
 			while (threads.activeCount() > 0 &&
-							(System.currentTimeMillis() - shutdownStart) < 10000) {
+					(System.currentTimeMillis() - shutdownStart) < 10000) {
 				try {
 					sleep(100);
 				} catch (Exception e) {	}
@@ -258,9 +268,7 @@ public class MonitorRuntime extends TigaseRuntime {
 			}
 
 
-			String SHUTDOWN_THREAD_DUMP = "shutdown-thread-dump";
-			if (System.getProperty(SHUTDOWN_THREAD_DUMP) == null ||
-					Boolean.TRUE.equals(Boolean.valueOf(System.getProperty(SHUTDOWN_THREAD_DUMP)))) {
+			if (shutdownThreadDump) {
 
 				try {
 					// we have to configure logger here
@@ -296,7 +304,6 @@ public class MonitorRuntime extends TigaseRuntime {
 					log.log(Level.WARNING, "Failed creating thread dumper logger");
 				}
 			}
-
 
 			System.out.println("ShutdownThread finished...");
 			log.warning("ShutdownThread finished...");

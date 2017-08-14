@@ -68,8 +68,8 @@ import java.util.logging.Logger;
 @Bean(name = "vhost-man", parent = Kernel.class, active = true, exportable = true)
 @ConfigType({ConfigTypeEnum.DefaultMode, ConfigTypeEnum.SessionManagerMode, ConfigTypeEnum.ConnectionManagersMode})
 public class VHostManager
-				extends AbstractComponentRegistrator<VHostListener>
-				implements VHostManagerIfc, StatisticsContainer, RegistrarBean {
+		extends AbstractComponentRegistrator<VHostListener>
+		implements VHostManagerIfc, StatisticsContainer, RegistrarBean {
 
 	/** Field description */
 	private static final Logger log = Logger.getLogger(VHostManager.class.getName());
@@ -297,7 +297,7 @@ public class VHostManager
 		}
 		return item;
 	}
-	
+
 	@Override
 	public boolean isAnonymousEnabled(String domain) {
 		++isAnonymousEnabledCalls;
@@ -352,11 +352,11 @@ public class VHostManager
 	public void setName(String name) {
 		super.setName(name);
 	}
-	
+
 	public void initializeRepository() throws TigaseDBException {
 		// loading all items
 		repo.reload();
-		
+
 		List<VHostItem> items = new ArrayList<VHostItem>(repo.allItems());
 		for (VHostItem item : items) {
 			// if there is no S2S secret set for vhost, then we need to generate it
@@ -365,9 +365,9 @@ public class VHostManager
 				item.setS2sSecret(secret);
 				repo.addItem(item);
 			}
-		}	
+		}
 	}
-	
+
 	public String generateSecret() {
 		String random = UUID.randomUUID().toString();
 		return random;

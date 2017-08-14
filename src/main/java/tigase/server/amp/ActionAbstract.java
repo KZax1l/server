@@ -28,6 +28,8 @@ package tigase.server.amp;
 
 import tigase.db.UserRepository;
 import tigase.kernel.beans.Inject;
+import tigase.kernel.beans.config.ConfigAlias;
+import tigase.kernel.beans.config.ConfigAliases;
 import tigase.kernel.beans.config.ConfigField;
 import tigase.server.Packet;
 import tigase.xml.Element;
@@ -52,18 +54,23 @@ import java.util.logging.Logger;
  * @author <a href="mailto:artur.hefczyc@tigase.org">Artur Hefczyc</a>
  * @version $Rev$
  */
+@ConfigAliases({
+		@ConfigAlias(field = "security", alias = "amp-security-level")
+})
 public abstract class ActionAbstract
-				implements ActionIfc {
+		implements ActionIfc {
 	/** Field description */
+	@Deprecated
 	public static final String AMP_SECURITY_LEVEL = "--amp-security-level";
 
 	/** Field description */
+	@Deprecated
 	public static final String AMP_SECURITY_LEVEL_DEFAULT = "STRICT";
 
 	/** Field description */
 	public static final String SECURITY_PROP_KEY = "security-level";
 	private static Logger log                    =
-		Logger.getLogger(ActionAbstract.class.getName());
+			Logger.getLogger(ActionAbstract.class.getName());
 
 	//~--- fields ---------------------------------------------------------------
 
@@ -82,26 +89,6 @@ public abstract class ActionAbstract
 		NONE, PERFORMANCE, STRICT
 	};
 
-	//~--- get methods ----------------------------------------------------------
-
-	@Override
-	public Map<String, Object> getDefaults(Map<String, Object> params) {
-		Map<String, Object> defs = new LinkedHashMap<String, Object>();
-		String sec_str           = (String) params.get(AMP_SECURITY_LEVEL);
-
-		if (null == sec_str) {
-			sec_str = AMP_SECURITY_LEVEL_DEFAULT;
-		}
-		try {
-			SECURITY sec = SECURITY.valueOf(sec_str.toUpperCase());
-
-			security = sec;
-		} catch (Exception e) {}
-		defs.put(SECURITY_PROP_KEY, security.name());
-
-		return defs;
-	}
-
 	//~--- set methods ----------------------------------------------------------
 
 	@Override
@@ -118,27 +105,27 @@ public abstract class ActionAbstract
 	 * @param packet
 	 * @param rule
 	 *
-	 * 
+	 *
 	 *
 	 * @throws PacketErrorTypeException
 	 */
 	protected Packet prepareAmpPacket(Packet packet, Element rule)
-					throws PacketErrorTypeException {
+			throws PacketErrorTypeException {
 		boolean error_result = false;
 
 		switch (security) {
-		case NONE :
-			break;
+			case NONE :
+				break;
 
-		case PERFORMANCE :
-			error_result = true;
+			case PERFORMANCE :
+				error_result = true;
 
-			break;
+				break;
 
-		case STRICT :
-			error_result = !checkUserRoster(packet.getStanzaTo(), packet.getStanzaFrom());
+			case STRICT :
+				error_result = !checkUserRoster(packet.getStanzaTo(), packet.getStanzaFrom());
 
-			break;
+				break;
 		}
 
 		Packet result = null;
@@ -165,8 +152,8 @@ public abstract class ActionAbstract
 
 			result.getElement().removeChild(amp);
 			amp = new Element("amp", new Element[] { rule }, new String[] { "from", "to",
-							"xmlns", "status" }, new String[] { old_from.toString(), old_to.toString(),
-							AMP_XMLNS, getName() });
+					"xmlns", "status" }, new String[] { old_from.toString(), old_to.toString(),
+					AMP_XMLNS, getName() });
 			result.getElement().addChild(amp);
 			removeTigasePayload(result);
 			if (from_conn_id != null) {
@@ -201,7 +188,7 @@ public abstract class ActionAbstract
 
 		try {
 			String roster_str = user_repository.getData(user.getBareJID(),
-														RosterAbstract.ROSTER);
+					RosterAbstract.ROSTER);
 
 			if (roster_str != null) {
 				Map<BareJID, RosterElement> roster = new LinkedHashMap<BareJID, RosterElement>();
