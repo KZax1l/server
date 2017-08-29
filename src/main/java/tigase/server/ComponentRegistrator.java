@@ -4,11 +4,11 @@ package tigase.server;
  * Interface ComponentRegistratorIfc
  * Collects information about all ServerComponentsIfc connected to MessageRouter
  */
-public interface ComponentRegistratorIfc extends ServerComponentIfc {
+public interface ComponentRegistrator extends ServerComponent {
     /**
      * @param component
      */
-    void addComponent(ServerComponentIfc component);
+    void addComponent(ServerComponent component);
 
-    void deleteComponent(ServerComponentIfc component);
+    void deleteComponent(ServerComponent component);
 }

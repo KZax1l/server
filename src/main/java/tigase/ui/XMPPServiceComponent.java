@@ -1,4 +1,4 @@
 package tigase.ui;
 
-public class XMPPServiceComponent {
+public class XMPPServiceComponent implements UIComponent {
 }

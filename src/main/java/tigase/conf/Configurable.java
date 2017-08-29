@@ -1,5 +1,7 @@
 package tigase.conf;
 
+import java.util.Map;
+
 /**
  * Interface Configurable
  * Objects inheriting this interface can be configured. In Tigase system object can't request configuration properties.
@@ -25,5 +27,5 @@ public interface Configurable {
     /**
      * Returns defualt configuration settings for this object.
      */
-    String getDefaults();
+    Map<String, String> getDefaults();
 }

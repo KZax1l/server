@@ -1,4 +1,6 @@
 package tigase.conf;
 
-public class ConfigComponent {
+import tigase.ui.UIComponent;
+
+public class ConfigComponent implements UIComponent {
 }

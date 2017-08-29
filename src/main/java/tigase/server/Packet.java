@@ -28,10 +28,7 @@ public class Packet {
         return false;
     }
 
-    /**
-     * @return byte
-     */
-    public byte getData() {
-        return Byte.parseByte("");
+    public byte[] getData() {
+        return null;
     }
 }

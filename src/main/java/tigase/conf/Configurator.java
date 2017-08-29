@@ -1,4 +1,7 @@
 package tigase.conf;
 
-public class Configurator {
+import tigase.server.AbstractComponentRegistrator;
+import tigase.server.XMPPService;
+
+public class Configurator extends AbstractComponentRegistrator implements XMPPService {
 }

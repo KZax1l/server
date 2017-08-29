@@ -1,4 +1,6 @@
 package tigase.ui;
 
-public class WebUI {
+import tigase.http.HttpService;
+
+public class WebUI implements HttpService {
 }

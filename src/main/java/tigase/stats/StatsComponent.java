@@ -1,4 +1,6 @@
 package tigase.stats;
 
-public class StatsComponent {
+import tigase.ui.UIComponent;
+
+public class StatsComponent implements UIComponent {
 }
