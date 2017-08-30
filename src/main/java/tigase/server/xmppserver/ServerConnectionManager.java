@@ -1,16 +1,18 @@
 package tigase.server.xmppserver;
 
 import tigase.conf.Configurable;
-import tigase.server.AbstractComponentRegistrator;
+import tigase.server.AbstractMessageReceiver;
+import tigase.server.MessageReceiver;
+import tigase.server.Packet;
 import tigase.server.XMPPService;
 import tigase.stats.StatisticsContainer;
 
 import java.util.Map;
+import java.util.Queue;
 
-public class ServerConnectionManager extends AbstractComponentRegistrator implements Configurable, XMPPService, StatisticsContainer {
-    @Override
-    public String getId() {
-        return null;
+public class ServerConnectionManager extends AbstractMessageReceiver implements Configurable, XMPPService, StatisticsContainer {
+    public ServerConnectionManager(String[] addresses, int maxQueueSize, MessageReceiver parent) {
+        super(addresses, maxQueueSize, parent);
     }
 
     @Override
@@ -29,7 +31,7 @@ public class ServerConnectionManager extends AbstractComponentRegistrator implem
     }
 
     @Override
-    public Map<String, String> getStatistics() {
+    public Queue<Packet> processPacket(Packet packet) {
         return null;
     }
 }

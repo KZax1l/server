@@ -1,16 +1,18 @@
 package tigase.server.xmppsession;
 
 import tigase.conf.Configurable;
-import tigase.server.AbstractComponentRegistrator;
+import tigase.server.AbstractMessageReceiver;
+import tigase.server.MessageReceiver;
+import tigase.server.Packet;
 import tigase.server.XMPPService;
 import tigase.stats.StatisticsContainer;
 
 import java.util.Map;
+import java.util.Queue;
 
-public class SessionManager extends AbstractComponentRegistrator implements Configurable, XMPPService, StatisticsContainer {
-    @Override
-    public String getId() {
-        return null;
+public class SessionManager extends AbstractMessageReceiver implements Configurable, XMPPService, StatisticsContainer {
+    public SessionManager(String[] addresses, int maxQueueSize, MessageReceiver parent) {
+        super(addresses, maxQueueSize, parent);
     }
 
     @Override
@@ -29,7 +31,7 @@ public class SessionManager extends AbstractComponentRegistrator implements Conf
     }
 
     @Override
-    public Map<String, String> getStatistics() {
+    public Queue<Packet> processPacket(Packet packet) {
         return null;
     }
 }

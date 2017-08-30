@@ -4,11 +4,11 @@ import tigase.conf.Configurable;
 import tigase.stats.StatisticsContainer;
 
 import java.util.Map;
+import java.util.Queue;
 
-public class MessageRouter extends AbstractComponentRegistrator implements Configurable, XMPPService, StatisticsContainer {
-    @Override
-    public String getId() {
-        return null;
+public class MessageRouter extends AbstractMessageReceiver implements Configurable, XMPPService, StatisticsContainer {
+    public MessageRouter(String[] addresses, int maxQueueSize, MessageReceiver parent) {
+        super(addresses, maxQueueSize, parent);
     }
 
     @Override
@@ -27,7 +27,7 @@ public class MessageRouter extends AbstractComponentRegistrator implements Confi
     }
 
     @Override
-    public Map<String, String> getStatistics() {
+    public Queue<Packet> processPacket(Packet packet) {
         return null;
     }
 }
