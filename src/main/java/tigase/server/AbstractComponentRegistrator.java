@@ -1,13 +1,18 @@
 package tigase.server;
 
-public class AbstractComponentRegistrator implements ComponentRegistrator {
-    @Override
-    public void addComponent(ServerComponent component) {
+import java.util.ArrayList;
+import java.util.List;
 
+public class AbstractComponentRegistrator implements ComponentRegistrator {
+    private List<ServerComponent> components = new ArrayList<ServerComponent>();
+
+    @Override
+    public boolean addComponent(ServerComponent component) {
+        return components.add(component);
     }
 
     @Override
-    public void deleteComponent(ServerComponent component) {
-
+    public boolean deleteComponent(ServerComponent component) {
+        return components.remove(component);
     }
 }

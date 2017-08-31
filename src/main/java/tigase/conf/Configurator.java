@@ -7,6 +7,9 @@ import java.util.Map;
 import java.util.TreeMap;
 
 public class Configurator extends AbstractComponentRegistrator implements XMPPService {
+    public Configurator(String fileName) {
+    }
+
     /**
      * Returns defualt configuration settings in case if there is no
      * config file.

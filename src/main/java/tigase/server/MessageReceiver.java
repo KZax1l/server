@@ -11,7 +11,7 @@ public interface MessageReceiver extends ServerComponent {
      * Returns array of Strings. Each String should be a regular expression defining destination addresses for which this receiver can process messages.
      * There can be more than one message receiver for each messages.
      */
-    String[] routingAddresses();
+    String[] getRoutingAddresses();
 
     /**
      * @param packet

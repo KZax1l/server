@@ -8,7 +8,7 @@ public interface ComponentRegistrator extends ServerComponent {
     /**
      * @param component
      */
-    void addComponent(ServerComponent component);
+    boolean addComponent(ServerComponent component);
 
-    void deleteComponent(ServerComponent component);
+    boolean deleteComponent(ServerComponent component);
 }
