@@ -20,7 +20,7 @@ public class ClientConnectionManager extends AbstractMessageReceiver implements 
     }
 
     @Override
-    public void setProperties() {
+    public void setProperties(Map<String, String> properties) {
 
     }
 

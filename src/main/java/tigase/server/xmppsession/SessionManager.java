@@ -21,7 +21,7 @@ public class SessionManager extends AbstractMessageReceiver implements Configura
     }
 
     @Override
-    public void setProperties() {
+    public void setProperties(Map<String, String> properties) {
 
     }
 

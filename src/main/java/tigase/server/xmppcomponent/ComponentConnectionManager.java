@@ -20,7 +20,7 @@ public class ComponentConnectionManager extends AbstractMessageReceiver implemen
     }
 
     @Override
-    public void setProperties() {
+    public void setProperties(Map<String, String> properties) {
 
     }
 

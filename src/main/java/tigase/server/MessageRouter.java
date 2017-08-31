@@ -17,7 +17,7 @@ public class MessageRouter extends AbstractMessageReceiver implements Configurab
     }
 
     @Override
-    public void setProperties() {
+    public void setProperties(Map<String, String> properties) {
 
     }
 
